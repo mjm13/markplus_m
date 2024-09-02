@@ -1,9 +1,36 @@
 {
   "manifest_version": 3,
-  "name": "MMM",
-  "description": "this is my Crxjs&Vue Chrome ext",
-  "version": "1.0.0",
+  "name": "MarkPlus-M-vite",
+  "version": "1.0",
+  "description": "扩展书签的功能，增加额外字段用于查询和整理。",
+  "permissions": [
+    "bookmarks",
+    "storage",
+    "webRequest",
+    "activeTab",
+    "scripting",
+    "webNavigation"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module",
+    "web_accessible_resources": [
+      {
+        "resources": ["src/common/dbManager.ts"],
+        "matches": ["<all_urls>"]
+      }
+    ]
+  },
   "action": {
-    "default_popup": "index.html"
+    "default_icon": {
+      "16": "src/assets/icons/icon16.png",
+      "48": "src/assets/icons/icon48.png",
+      "128": "src/assets/icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "src/assets/icons/icon16.png",
+    "48": "src/assets/icons/icon48.png",
+    "128": "src/assets/icons/icon128.png"
   }
 }
