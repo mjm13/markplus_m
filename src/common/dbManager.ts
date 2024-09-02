@@ -27,12 +27,12 @@ class DBManager {
 
             request.onsuccess = (event) => {
                 this.db = request.result;
-                console.log("数据库成功打开");
+                console.log("数据库成功打开",event);
                 resolve(this.db);
             };
 
             request.onupgradeneeded = (event) => {
-                console.log("数据库升级中");
+                console.log("数据库升级中",event);
                 this.db = request.result;
                 if (!this.db.objectStoreNames.contains(this.storeName)) {
                     console.log(`创建对象存储 ${this.storeName}`);
