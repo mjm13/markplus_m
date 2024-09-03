@@ -1,15 +1,15 @@
-import DBManager from '../common/dbManager.ts';
+// import DBManager from '../common/dbManager.ts';
 
-const dbManager = new DBManager();
+// const dbManager = new DBManager();
 // 监听扩展安装或更新事件
-chrome.runtime.onInstalled.addListener(() => {
-    console.log("Bookmark Extender 插件已安装");
-    dbManager.initDatabase().then(() => {
-        console.log("数据库初始化完成");
-    }).catch((error) => {
-        console.error("数据库初始化失败", error);
-    });
-});
+// chrome.runtime.onInstalled.addListener(() => {
+//     console.log("Bookmark Extender 插件已安装");
+//     dbManager.initDatabase().then(() => {
+//         console.log("数据库初始化完成");
+//     }).catch((error) => {
+//         console.error("数据库初始化失败", error);
+//     });
+// });
 
 // 监听扩展图标点击事件
 chrome.action.onClicked.addListener((tab: chrome.tabs.Tab) => {
