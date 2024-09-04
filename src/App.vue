@@ -37,8 +37,8 @@
 </template>
 
 <script>
-import DBManager from './assets/lib/dbManager.js';
-import Util from './assets/lib/utils.js';
+import DBManager from './common/dbManager.js';
+import Util from './common/utils.js';
 import {
     ElAside,
     ElButton,
