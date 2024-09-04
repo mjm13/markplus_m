@@ -143,10 +143,6 @@ export default {
             }
         },
         handleNodeClick(data) {
-            this.loadBookmarks(data.id);
-        },
-        loadBookmarks(treeId) {
-            // 加载书签数据的逻辑
         },
         searchBookmarks() {
 
@@ -155,32 +151,30 @@ export default {
 
         },
         initBookMarks(){
+            let temp = this;
             chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
                 console.log("开始初始化书签");
                 const bookmarks = Util.flattenBookmarkTree(bookmarkTreeNodes);
                 console.log(bookmarks.length)
                 DBManager.saveBookmarks(bookmarks)
                     .then(() => {
-                        console.log("书签初始化完成");
+                        DBManager.queryBookmarks({
+                            prop: 'type',
+                            operator: 'eq',
+                            value: 'folder'
+                        }).then((datas) => {
+                            temp.treeData = Util.getRootTree(datas);
+                        })
                     })
                     .catch(error => {
                         console.error("初始化或验证书签时出错:", error);
                     });
             });
-        },
-        initTree() {
-            DBManager.queryBookmarks({
-                prop: 'type',
-                operator: 'eq',
-                value: 'folder'
-            }).then((datas) => {
-                this.treeData = Util.buildTree(datas).get(0).children;
-            })
         }
     },
     mounted() {
-        // this.initBookMarks();
-        this.initTree();
+        this.initBookMarks();
+
     }
 };
 </script>

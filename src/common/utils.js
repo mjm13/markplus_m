@@ -56,7 +56,11 @@ const Util={
       }
     });
     return tree;
+  },
+  getRootTree:function(datas){
+    return this.buildTree(datas)[0].children;
   }
+
 
 }
 

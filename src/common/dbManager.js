@@ -27,12 +27,13 @@ const DBManager = {
             };
         });
     },
-    saveBookmarks: function (bookmarks) {
+    saveBookmarks: async function (bookmarks) {
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
                 console.log("开始存储书签，总数：", bookmarks.length);
                 const transaction = this.db.transaction([this.storeName], "readwrite");
                 const objectStore = transaction.objectStore(this.storeName);
+
                 let count = 0;
                 bookmarks.forEach(bookmark => {
                     const request = objectStore.put(bookmark);
@@ -57,6 +58,21 @@ const DBManager = {
                     reject(event);
                 };
             });
+        });
+    },
+    dbCount: async function() {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.storeName], "readonly");
+            const objectStore = transaction.objectStore(this.storeName);
+            const countRequest = objectStore.count();
+
+            countRequest.onsuccess = () => {
+                resolve(countRequest.result);
+            };
+
+            countRequest.onerror = () => {
+                reject(countRequest.error);
+            };
         });
     },
     deleteBookmarks: function (bookmarks) {
