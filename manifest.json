@@ -12,11 +12,11 @@
     "webNavigation"
   ],
   "background": {
-    "service_worker": "src/background/service-worker.ts",
+    "service_worker": "src/background/service-worker.js",
     "type": "module",
     "web_accessible_resources": [
       {
-        "resources": ["src/common/dbManager.ts"],
+        "resources": ["src/common/dbManager.js"],
         "matches": ["<all_urls>"]
       }
     ]
