@@ -47,12 +47,15 @@ const Util={
       map.set(node.id, { ...node, children: [] });
     });
     const tree = [];
-    datas.forEach(node => {
+    let treeArr =  datas.toSorted((a, b) => a.index - b.index);
+    treeArr.forEach(node => {
       const parent = map.get(node.parentId);
+      let temp = map.get(node.id);
       if (parent) {
-        parent.children.push(map.get(node.id));
+        // parent.children.splice(temp.index,0,temp);
+        parent.children.push(temp);
       } else {
-        tree.push(map.get(node.id));
+        tree.push(temp);
       }
     });
     return tree;

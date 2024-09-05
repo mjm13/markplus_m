@@ -1,9 +1,27 @@
 <template>
     <el-container style="height: 95vh">
-        <el-aside :style="{ width: asideWidth + 'px', cursor: 'ew-resize',borderRight:'3px solid #eee' }"
-                  @mousedown="startDrag" @mouseup="stopDrag">
+        <el-aside
+            :style="{ width: '300px',borderRight:'3px solid var(--el-border-color)' }"
+                 >
             <el-scrollbar>
-                <el-tree :data="treeData" :props="defaultProps" @node-click="handleNodeClick"></el-tree>
+                <el-tree :data="treeData"
+                         default-expand-all
+                         draggable
+                         node-key="id"
+                         @node-click="handleNodeClick">
+                        <template #default="{ node, data }">
+                            <span class="custom-tree-node">
+                              <span>
+                                  <el-icon>
+                                      <Folder/>
+                                  </el-icon>
+                                  {{ data.title }}
+                              </span>
+                              <span>
+                              </span>
+                            </span>
+                        </template>
+                </el-tree>
             </el-scrollbar>
         </el-aside>
         <el-container>
@@ -21,15 +39,14 @@
                 </el-space>
             </el-header>
             <el-main>
-                <el-table :data="bookmarks" style="width: 100%">
-                    <el-table-column label="标题" prop="title" width="180">
+                <el-table :data="bookmarks" stripe  style="width: 100%">
+                    <el-table-column label="标题" prop="title" >
                         <template #default="scope">
+                            <img :src="getFaviconUrl(scope.row.url)" />
                             <el-link :href="scope.row.url" target="_blank">{{ scope.row.title }}</el-link>
                         </template>
                     </el-table-column>
-                    <el-table-column label="URL" prop="url" width="300"></el-table-column>
-                    <el-table-column label="关键词" prop="metaKeywords"></el-table-column>
-                    <el-table-column label="描述" prop="metaDescription"></el-table-column>
+                    <el-table-column label="描述" prop="metaDescription" width="100"></el-table-column>
                 </el-table>
             </el-main>
         </el-container>
@@ -69,34 +86,30 @@ export default {
     },
     data() {
         return {
-            treeData: [],
+            treeData: [{
+                id: 0,
+                tiltle: "书签"
+            }],
             bookmarks: [],
             searchQuery: {
                 prop: "",
-                value: "aaa",
-                options: [{
-                    value: 'all',
-                    label: '全局'
-                }, {
+                value: "",
+                options: [ {
                     value: 'title',
-                    label: '备注'
-                }, {
-                    value: 'metaTitle',
                     label: '标题'
                 }, {
+                    value: 'metaTitle',
+                    label: '源标题'
+                }, {
                     value: 'metaKeywords',
-                    label: '关键词'
+                    label: '源关键词'
                 }, {
                     value: 'metaDescription',
-                    label: '描述'
+                    label: '源描述'
                 }, {
                     value: 'url',
                     label: '网址'
                 }],
-            },
-            defaultProps: {
-                children: 'children',
-                label: 'title'
             },
             asideWidth: 200, // 初始宽度
             isDragging: false, // 拖动状态
@@ -104,77 +117,55 @@ export default {
         };
     },
     methods: {
-        startDrag(event) {
-            event.preventDefault();
-            this.isDragging = true;
-            this.startX = event.clientX; // 记录鼠标起始位置
-            document.addEventListener('mousemove', this.onDrag);
-            document.addEventListener('mouseup', this.stopDrag);
-
-        },
-        onDrag(event) {
-            event.preventDefault();
-            if (this.isDragging) {
-                const diffX = event.clientX - this.startX; // 计算鼠标移动的距离
-                const newWidth = this.asideWidth + diffX; // 计算新的宽度
-                // 设置最大和最小宽度
-                const minWidth = 100; // 最小宽度
-                const maxWidth = 700; // 最大宽度
-                if (newWidth < minWidth) {
-                    this.asideWidth = minWidth; // 设置为最小宽度
-                    this.stopDrag(); // 触发停止拖动
-                } else if (newWidth > maxWidth) {
-                    this.asideWidth = maxWidth; // 设置为最大宽度
-                    this.stopDrag(); // 触发停止拖动
-                } else {
-                    this.asideWidth = newWidth; // 更新宽度
-                }
-
-                this.startX = event.clientX;
-            }
-
-        },
-        stopDrag() {
-            if (this.isDragging) {
-                this.isDragging = false;
-                document.removeEventListener('mousemove', this.onDrag);
-                document.removeEventListener('mouseup', this.stopDrag);
-
+        getFaviconUrl(url) {
+            // 生成 favicon URL
+            try {
+                return `chrome://favicon/${url}`;
+            } catch (e) {
+                console.error('Invalid URL:', url);
+                return '';
             }
         },
         handleNodeClick(data) {
+            let _this = this;
+            DBManager.queryBookmarks({
+                prop: 'parentId',
+                operator: 'eq',
+                value: data.id
+            }).then((datas) => {
+                _this.bookmarks = datas;
+            })
         },
         searchBookmarks() {
 
         },
-        addBookmark() {
-
-        },
-        initBookMarks(){
-            let temp = this;
-            chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
+        initBookMarks() {
+            let _this = this;
+            chrome.bookmarks.getTree(async function (bookmarkTreeNodes) {
                 console.log("开始初始化书签");
                 const bookmarks = Util.flattenBookmarkTree(bookmarkTreeNodes);
                 console.log(bookmarks.length)
-                DBManager.saveBookmarks(bookmarks)
-                    .then(() => {
-                        DBManager.queryBookmarks({
-                            prop: 'type',
-                            operator: 'eq',
-                            value: 'folder'
-                        }).then((datas) => {
-                            temp.treeData = Util.getRootTree(datas);
-                        })
-                    })
-                    .catch(error => {
-                        console.error("初始化或验证书签时出错:", error);
-                    });
+                let dbCount = await DBManager.dbCount();
+                if (dbCount == bookmarks.length) {
+                    console.log("书签已初始化");
+                } else {
+                    await DBManager.saveBookmarks(bookmarks)
+                        .catch(error => {
+                            console.error("初始化或验证书签时出错:", error);
+                        });
+                }
+                DBManager.queryBookmarks({
+                    prop: 'type',
+                    operator: 'eq',
+                    value: 'folder'
+                }).then((datas) => {
+                    _this.treeData = Util.getRootTree(datas);
+                })
             });
         }
     },
     mounted() {
         this.initBookMarks();
-
     }
 };
 </script>

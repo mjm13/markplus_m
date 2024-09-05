@@ -32,5 +32,8 @@
     "16": "src/assets/icons/icon16.png",
     "48": "src/assets/icons/icon48.png",
     "128": "src/assets/icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' chrome://favicon/"
   }
 }

@@ -61,18 +61,20 @@ const DBManager = {
         });
     },
     dbCount: async function() {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([this.storeName], "readonly");
-            const objectStore = transaction.objectStore(this.storeName);
-            const countRequest = objectStore.count();
+        return this.initDatabase().then(() => {
+            return new Promise((resolve, reject) => {
+                const transaction = this.db.transaction([this.storeName], "readonly");
+                const objectStore = transaction.objectStore(this.storeName);
+                const countRequest = objectStore.count();
 
-            countRequest.onsuccess = () => {
-                resolve(countRequest.result);
-            };
+                countRequest.onsuccess = () => {
+                    resolve(countRequest.result);
+                };
 
-            countRequest.onerror = () => {
-                reject(countRequest.error);
-            };
+                countRequest.onerror = () => {
+                    reject(countRequest.error);
+                };
+            });
         });
     },
     deleteBookmarks: function (bookmarks) {
@@ -116,9 +118,7 @@ const DBManager = {
                 let count = 0;
                 request.onsuccess = event => {
                     const cursor = event.target.result;
-                    console.log("count:" + count + "-limit:" + limit);
                     if (limit != -1 && count >= limit) {
-                        console.log(`搜索完成，找到 ${results.length} 个结果`);
                         resolve(results);
                     } else if (cursor) {
                         if (operator === 'like') {
