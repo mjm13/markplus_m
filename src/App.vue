@@ -117,14 +117,11 @@ export default {
         };
     },
     methods: {
-        getFaviconUrl(url) {
-            // 生成 favicon URL
-            try {
-                return `chrome://favicon/${url}`;
-            } catch (e) {
-                console.error('Invalid URL:', url);
-                return '';
-            }
+        getFaviconUrl(siteUrl) {
+            const url = new URL(chrome.runtime.getURL("/_favicon/"));
+            url.searchParams.set("pageUrl", siteUrl);
+            url.searchParams.set("size", "16");
+            return url.toString();
         },
         handleNodeClick(data) {
             let _this = this;

@@ -4,6 +4,7 @@
   "version": "1.0",
   "description": "扩展书签的功能，增加额外字段用于查询和整理。",
   "permissions": [
+    "favicon",
     "bookmarks",
     "storage",
     "webRequest",
@@ -18,9 +19,20 @@
       {
         "resources": ["src/common/dbManager.js"],
         "matches": ["<all_urls>"]
+      },
+      {
+        "resources": ["_favicon/*"],
+        "matches": ["<all_urls>"],
+        "extension_ids": ["*"]
       }
     ]
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["_favicon/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "action": {
     "default_icon": {
       "16": "src/assets/icons/icon16.png",
@@ -32,8 +44,5 @@
     "16": "src/assets/icons/icon16.png",
     "48": "src/assets/icons/icon48.png",
     "128": "src/assets/icons/icon128.png"
-  },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' chrome://favicon/"
   }
 }

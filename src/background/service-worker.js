@@ -36,3 +36,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;  // 保持消息通道开放
     }
 });
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "getFavicon") {
+        const faviconUrl = 'chrome://favicon/' + request.url;
+        fetch(faviconUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    sendResponse({dataUrl: reader.result});
+                }
+                reader.readAsDataURL(blob);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                sendResponse({error: error.toString()});
+            });
+        return true;  // 保持消息通道开放
+    }
+});
