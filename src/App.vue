@@ -42,8 +42,10 @@
                 <el-table :data="bookmarks" stripe  style="width: 100%">
                     <el-table-column label="标题" prop="title" >
                         <template #default="scope">
-                            <img :src="getFaviconUrl(scope.row.url)" />
-                            <el-link :href="scope.row.url" target="_blank">{{ scope.row.title }}</el-link>
+                            <el-link :href="scope.row.url" target="_blank">
+                                <img :src="getFaviconUrl(scope.row.url)" style="padding-right: 10px"/>
+                                {{ scope.row.title? scope.row.title : scope.row.url }}
+                            </el-link>
                         </template>
                     </el-table-column>
                     <el-table-column label="描述" prop="metaDescription" width="100"></el-table-column>
