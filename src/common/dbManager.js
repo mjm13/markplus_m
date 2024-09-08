@@ -157,4 +157,4 @@ const DBManager = {
 };
 
 
-export default  DBManager
+export default  DBManager;
