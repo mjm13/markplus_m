@@ -7,6 +7,7 @@
                 <el-tree :data="treeData"
                          default-expand-all
                          draggable
+                         :expand-on-click-node="false"
                          node-key="id"
                          @node-click="handleNodeClick">
                         <template #default="{ node, data }">
@@ -35,7 +36,6 @@
                     <el-input v-model="searchQuery.value" placeholder="搜索书签" style="width: 200px;"></el-input>
 
                     <el-button type="primary" @click="searchBookmarks">搜索</el-button>
-                    <el-button type="success" @click="addBookmark">添加书签</el-button>
                 </el-space>
             </el-header>
             <el-main>
@@ -56,20 +56,21 @@
 </template>
 
 <script>
-import DBManager from './common/dbManager.js';
-import Util from './common/utils.js';
+import Constant from './common/constant.js';
 import {
-    ElAside,
-    ElButton,
-    ElContainer,
-    ElHeader,
-    ElInput,
-    ElLink,
-    ElMain,
-    ElTable,
-    ElTableColumn,
-    ElTree
+  ElAside,
+  ElButton,
+  ElContainer,
+  ElHeader,
+  ElInput,
+  ElLink,
+  ElMain,
+  ElTable,
+  ElTableColumn,
+  ElTree
 } from 'element-plus';
+
+const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 
 
 export default {
@@ -126,45 +127,35 @@ export default {
             return url.toString();
         },
         handleNodeClick(data) {
-            let _this = this;
-            DBManager.queryBookmarks({
-                prop: 'parentId',
-                operator: 'eq',
-                value: data.id
-            }).then((datas) => {
-                _this.bookmarks = datas;
-            })
+          backgroundConn.postMessage({
+            action: Constant.QUERY_BOOKMARKS,
+            prop: 'parentId',
+            operator: 'eq',
+            value: data.id
+          });
         },
         searchBookmarks() {
 
-        },
-        initBookMarks() {
-            let _this = this;
-            chrome.bookmarks.getTree(async function (bookmarkTreeNodes) {
-                console.log("开始初始化书签");
-                const bookmarks = Util.flattenBookmarkTree(bookmarkTreeNodes);
-                console.log(bookmarks.length)
-                let dbCount = await DBManager.dbCount();
-                if (dbCount == bookmarks.length) {
-                    console.log("书签已初始化");
-                } else {
-                    await DBManager.saveBookmarks(bookmarks)
-                        .catch(error => {
-                            console.error("初始化或验证书签时出错:", error);
-                        });
-                }
-                DBManager.queryBookmarks({
-                    prop: 'type',
-                    operator: 'eq',
-                    value: 'folder'
-                }).then((datas) => {
-                    _this.treeData = Util.getRootTree(datas);
-                })
-            });
         }
     },
     mounted() {
-        this.initBookMarks();
+      const _this = this;
+
+      backgroundConn.onMessage.addListener(function(result) {
+        // 使用 `_this` 代替 `this`
+        if (result.action === Constant.QUERY_CATALOG) {
+          _this.treeData = result.datas;
+        } else if (result.action === Constant.QUERY_BOOKMARKS) {
+          _this.bookmarks = result.datas;
+        }
+      });
+
+      backgroundConn.postMessage({
+        action: Constant.QUERY_CATALOG,
+        prop: 'type',
+        operator: 'eq',
+        value: 'folder'
+      });
     }
 };
 </script>

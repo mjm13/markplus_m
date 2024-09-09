@@ -12,9 +12,9 @@ chrome.runtime.onInstalled.addListener(() => {
         if (dbCount == bookmarks.length) {
             console.log("书签已初始化");
         } else {
-            await DBManager.saveBookmarks(bookmarks)
+            DBManager.saveBookmarks(bookmarks)
                 .then(() => {
-                    console.log("书签已初始化");
+                    console.log("书签保存成功");
                 })
                 .catch(error => {
                     console.error("初始化或验证书签时出错:", error);
@@ -64,75 +64,56 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 //长连接模式
 chrome.runtime.onConnect.addListener(function (port) {
-    port.onMessage.addListener(function (msg) {
-        if (msg.action === "getData") {
-            // 处理获取数据的逻辑
-            let transaction = db.transaction(["myStore"], "readonly");
-            let objectStore = transaction.objectStore("myStore");
-            let getRequest = objectStore.get(msg.id);
-
-            getRequest.onsuccess = function () {
-                port.postMessage({data: getRequest.result});
-            };
-        } else if (msg.action === "setData") {
-            // 处理存储数据的逻辑
-            let transaction = db.transaction(["myStore"], "readwrite");
-            let objectStore = transaction.objectStore("myStore");
-            let putRequest = objectStore.put(msg.data);
-
-            putRequest.onsuccess = function () {
-                port.postMessage({success: true});
-            };
+    port.onMessage.addListener(function (params) {
+        if (params.action === Constant.QUERY_CATALOG) {
+            DBManager.queryBookmarks(params).then(datas => {
+                port.postMessage({action: Constant.QUERY_CATALOG, datas: Util.getRootTree(datas)});
+            })
+        }else if(params.action === Constant.QUERY_BOOKMARKS){
+            DBManager.queryBookmarks(params).then(datas => {
+                port.postMessage({action: Constant.QUERY_BOOKMARKS, datas: datas});
+            })
         }
     });
 });
-//弹出页面
-let port = chrome.runtime.connect({name: "popup-background-connection"});
 
-// 发送消息给 background 获取数据
-port.postMessage({action: "getData", id: 1});
-port.onMessage.addListener(function (response) {
-    if (response.data) {
-        console.log("Data from IndexedDB:", response.data);
-    }
+
+// 监听网页加载完成事件
+chrome.webNavigation.onCompleted.addListener((details) => {
+    const url = details.url;
+    const tabId = details.tabId;
+    console.log("url:",url);
+    // 查询是否为书签地址
+    DBManager.queryBookmarks({ prop: 'url',
+        operator: 'eq',
+        value: url
+      }).then(bookmarks => {
+        if (bookmarks.length > 0) { // 如果是书签地址
+            updateBookMark(bookmarks[0],tabId);
+        }
+    });
 });
-
-// 发送消息给 background 存储数据
-port.postMessage({action: "setData", data: {id: 1, value: "example"}});
-
-
-//vue中使用实例
-<script>
-    export default {
-    data() {
-    return {
-    port: null,    // 保存与 background 的连接
-    receivedData: null,  // 用于保存接收到的数据
-};
-},
-    mounted() {
-    // 在组件挂载时建立连接
-    this.port = chrome.runtime.connect({name: "popup-background-connection"});
-
-    // 监听来自 background 的消息
-    this.port.onMessage.addListener((msg) => {
-    if (msg.data) {
-    console.log("Received data from background:", msg.data);
-    this.receivedData = msg.data;
+//在打开的tab页中执行脚本获取元数据
+function updateBookMark(bookmark,tabId){
+    chrome.scripting.executeScript({
+        target: {tabId: tabId},
+        function: () => {
+            const metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
+            const metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
+            const metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
+            return {metaKeywords, metaTitle, metaDescription};
+        }
+    }, (results) => {
+        if (chrome.runtime.lastError) {
+            console.error("执行脚本时出错:", chrome.runtime.lastError.message);
+        } else {
+            let data = results[0].result;
+            console.log("获取的元数据:", results);
+            bookmark.metaKeywords = data.metaKeywords;
+            bookmark.metaTitle = data.metaTitle;
+            bookmark.metaDescription = data.metaDescription;
+            DBManager.saveBookmarks([bookmark]);
+        }
+    });
 }
-});
-},
-    methods: {
-    // 向 background 发送消息的示例
-    sendMessageToBackground() {
-    this.port.postMessage({action: "getData", id: 1});
-}
-},
-    beforeDestroy() {
-    // 组件销毁时移除监听器，避免内存泄漏
-    if (this.port) {
-    this.port.onMessage.removeListener(this.listener);
-}
-}
-};
-</script>
+
