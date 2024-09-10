@@ -22,7 +22,8 @@ const Util={
       id: node.id,
       parentId: node.parentId,
       title: node.title,//添加书签时标题
-      url: node.url,
+      url: node.url,//添加时url
+      currentUrl:"",//当前url
       dateGroupModified: node.dateGroupModified,
       dateAdded: node.dateAdded,
       index: node.index,//显示位置

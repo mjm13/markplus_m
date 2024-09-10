@@ -31,13 +31,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     const url = details.url;
     const tabId = details.tabId +" " ;
     if (url && url != 'about:blank') {
-        chrome.storage.local.set({ [tabId]: url }, function() {
-            if (chrome.runtime.lastError) {
-                console.error('Error storing data:', chrome.runtime.lastError);
-            } else {
-                console.log('Data stored successfully.');
-            }
-        });
+        chrome.storage.local.set({ [tabId]: url });
     }
 });
 

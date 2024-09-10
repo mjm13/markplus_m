@@ -23,8 +23,6 @@ const DBManager = {
                 if (!this.db.objectStoreNames.contains(this.storeName)) {
                     console.log(`创建对象存储 ${this.storeName}`);
                     const objectStore = this.db.createObjectStore(this.storeName, {keyPath: "id"});
-                    console.log("创建url索引")
-                    objectStore.createIndex("url", "url", { unique: false });
                 }
             };
         });

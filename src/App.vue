@@ -11,16 +11,10 @@
                          node-key="id"
                          @node-click="handleNodeClick">
                         <template #default="{ node, data }">
-                            <span class="custom-tree-node">
-                              <span>
-                                  <el-icon>
-                                      <Folder/>
-                                  </el-icon>
-                                  {{ data.title }}
-                              </span>
-                              <span>
-                              </span>
-                            </span>
+                          <el-icon>
+                            <Folder/>
+                          </el-icon>
+                          {{ data.title }}
                         </template>
                 </el-tree>
             </el-scrollbar>
@@ -39,17 +33,28 @@
                 </el-space>
             </el-header>
             <el-main>
-                <el-table :data="bookmarks" stripe  style="width: 100%">
-                    <el-table-column label="标题" prop="title" >
-                        <template #default="scope">
-                            <el-link :href="scope.row.url" target="_blank">
-                                <img :src="getFaviconUrl(scope.row.url)" style="padding-right: 10px"/>
-                                {{ scope.row.title? scope.row.title : scope.row.url }}
-                            </el-link>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="描述" prop="metaDescription" width="100"></el-table-column>
-                </el-table>
+              <el-scrollbar style="border-radius: 4px;box-shadow: 0 2px 12px 0 #909399">
+                <el-tree :data="bookmarks"
+                         :expand-on-click-node="false"
+                         default-expand-all
+                         draggable
+                         node-key="id">
+                  <template #default="{ node, data }">
+                    <template v-if="data.type === 'folder'">
+                      <el-icon>
+                        <Folder/>
+                      </el-icon>
+                      {{ data.title }}
+                    </template>
+                    <template v-else>
+                      <el-link :href="data.url" target="_blank">
+                        <img :src="getFaviconUrl(data.url)" style="padding-right: 10px"/>
+                        {{ data.title? data.title : data.url }}
+                      </el-link>
+                    </template>
+                  </template>
+                </el-tree>
+              </el-scrollbar>
             </el-main>
         </el-container>
     </el-container>
