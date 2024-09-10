@@ -2,7 +2,7 @@ const DBManager = {
     db: null,
     status: "0",
     dbName: "BookmarksDB",
-    dbVersion: 3,  // 每次修改数据库结构时增加这个值
+    dbVersion: 1,  // 每次修改数据库结构时增加这个值
     storeName: "M-bookmarksStore",
 
     initDatabase: function () {
@@ -23,8 +23,36 @@ const DBManager = {
                 if (!this.db.objectStoreNames.contains(this.storeName)) {
                     console.log(`创建对象存储 ${this.storeName}`);
                     const objectStore = this.db.createObjectStore(this.storeName, {keyPath: "id"});
+                    console.log("创建url索引")
+                    objectStore.createIndex("url", "url", { unique: false });
                 }
             };
+        });
+    },
+    getByUrl: async function (url){
+        if(url){
+            return this.queryBookmarks({
+                prop: 'url',
+                operator: 'like',
+                value: url.replace(/https?:\/\/|\/$/g, '')
+            });
+        }
+    },
+    getById: async function (id){
+        return this.initDatabase().then(() => {
+            return new Promise((resolve, reject) => {
+                const transaction = this.db.transaction([this.storeName], "readonly");
+                const objectStore = transaction.objectStore(this.storeName);
+                let countRequest = objectStore.get(id);
+
+                countRequest.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+
+                countRequest.onerror = () => {
+                    reject(countRequest.error);
+                };
+            });
         });
     },
     saveBookmarks: async function (bookmarks) {
@@ -122,8 +150,7 @@ const DBManager = {
                         resolve(results);
                     } else if (cursor) {
                         if (operator === 'like') {
-                            const regex = new RegExp(value, 'i');
-                            if (regex.test(cursor.value[prop])) {
+                            if (cursor.value[prop] && cursor.value[prop].indexOf(value)>-1 ) {
                                 results.push(cursor.value);
                             }
                         } else {

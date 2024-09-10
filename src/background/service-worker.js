@@ -1,7 +1,7 @@
 import DBManager from '../common/dbManager.js';
 import Constant from '../common/constant.js';
 import Util from "../common/utils.js";
-
+//初始化indexedDB
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Bookmark Extender 插件已安装");
     chrome.bookmarks.getTree(async function (bookmarkTreeNodes) {
@@ -27,6 +27,55 @@ chrome.action.onClicked.addListener((tab) => {
     chrome.tabs.create({url: 'index.html'});
 });
 
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+    const url = details.url;
+    const tabId = details.tabId +" " ;
+    if (url && url != 'about:blank') {
+        chrome.storage.local.set({ [tabId]: url }, function() {
+            if (chrome.runtime.lastError) {
+                console.error('Error storing data:', chrome.runtime.lastError);
+            } else {
+                console.log('Data stored successfully.');
+            }
+        });
+    }
+});
+
+// 监听网页加载完成事件
+chrome.webNavigation.onCompleted.addListener((details) => {
+    let url = details.url;
+    const tabId = details.tabId;
+    const key = details.tabId + " ";
+
+    if (url != 'about:blank') {
+        chrome.storage.local.get(key, (items) => {
+            // Pass any observed errors down the promise chain.
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            let searchUrl = url;
+            if(items[key] && items[key] != url){
+                console.log("原始url与打开url不一致",items[key],url)
+                searchUrl = items[key];
+                chrome.storage.local.remove(key);
+            }
+            console.log("搜索书签",searchUrl)
+            DBManager.getByUrl(searchUrl).then(datas => {
+                if(Array.isArray(datas)){
+                    const bookmark = datas[0];
+                    if (bookmark && bookmark.id && bookmark.status!=2) { // 如果是书签地址
+                        console.log("getByUrl找到书签", bookmark)
+                        bookmark.currentUrl =url;
+                        updateBookMark(bookmark, tabId);
+                    }
+                }
+
+            });
+        });
+    }
+});
+
+//todo主动打开url并触发更新书签
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'fetchUrl') {
         chrome.tabs.create({url: request.url, active: false}, (tab) => {
@@ -77,30 +126,17 @@ chrome.runtime.onConnect.addListener(function (port) {
     });
 });
 
-
-// 监听网页加载完成事件
-chrome.webNavigation.onCompleted.addListener((details) => {
-    const url = details.url;
-    const tabId = details.tabId;
-    console.log("url:",url);
-    // 查询是否为书签地址
-    DBManager.queryBookmarks({ prop: 'url',
-        operator: 'eq',
-        value: url
-      }).then(bookmarks => {
-        if (bookmarks.length > 0) { // 如果是书签地址
-            updateBookMark(bookmarks[0],tabId);
-        }
-    });
-});
 //在打开的tab页中执行脚本获取元数据
 function updateBookMark(bookmark,tabId){
     chrome.scripting.executeScript({
         target: {tabId: tabId},
         function: () => {
-            const metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
-            const metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
-            const metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
+            let metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
+            let metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
+            if(metaTitle){
+                metaTitle = document.querySelector('title')?.content || '';
+            }
+            let metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
             return {metaKeywords, metaTitle, metaDescription};
         }
     }, (results) => {
@@ -112,6 +148,7 @@ function updateBookMark(bookmark,tabId){
             bookmark.metaKeywords = data.metaKeywords;
             bookmark.metaTitle = data.metaTitle;
             bookmark.metaDescription = data.metaDescription;
+            bookmark.status = 2;
             DBManager.saveBookmarks([bookmark]);
         }
     });
