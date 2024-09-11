@@ -30,7 +30,7 @@ chrome.action.onClicked.addListener((tab) => {
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     const url = details.url;
     const tabId = details.tabId +" " ;
-    if (url && url != 'about:blank') {
+    if (url && url != 'about:blank' && url != 'about:srcdoc') {
         chrome.storage.local.set({ [tabId]: url });
     }
 });
@@ -55,9 +55,10 @@ chrome.webNavigation.onCompleted.addListener((details) => {
             }
             console.log("搜索书签",searchUrl)
             DBManager.getByUrl(searchUrl).then(datas => {
-                if(Array.isArray(datas)){
+                if(Array.isArray(datas) && datas.length>0){
                     const bookmark = datas[0];
-                    if (bookmark && bookmark.id && bookmark.status!=2) { // 如果是书签地址
+                    // if (bookmark && bookmark.id && bookmark.status!=2) { // 如果是书签地址
+                    if (bookmark && bookmark.id) { // 如果是书签地址
                         console.log("getByUrl找到书签", bookmark)
                         bookmark.currentUrl =url;
                         updateBookMark(bookmark, tabId);
@@ -127,11 +128,24 @@ function updateBookMark(bookmark,tabId){
         function: () => {
             let metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
             let metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
-            if(metaTitle){
-                metaTitle = document.querySelector('title')?.content || '';
+            if(metaTitle || metaTitle==''){
+                metaTitle = document.querySelector('title')?.text || '';
             }
             let metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
-            return {metaKeywords, metaTitle, metaDescription};
+            const metaTagsEle = document.querySelectorAll('meta[property$="tag"]');
+            let metaTags = '';
+            metaTagsEle.forEach((metaTag, index) => {
+                const content = metaTag.getAttribute('content');
+                if (content) {
+                    metaTags += content;
+                    if (index < metaTagsEle.length - 1) {
+                        metaTags += ',';
+                    }
+                }
+            });
+            const result = {metaKeywords, metaTitle, metaDescription,metaTags};
+            console.log("result:",result)
+            return result;
         }
     }, (results) => {
         if (chrome.runtime.lastError) {
@@ -142,6 +156,7 @@ function updateBookMark(bookmark,tabId){
             bookmark.metaKeywords = data.metaKeywords;
             bookmark.metaTitle = data.metaTitle;
             bookmark.metaDescription = data.metaDescription;
+            bookmark.metaTags = data.metaTags;
             bookmark.status = 2;
             DBManager.saveBookmarks([bookmark]);
         }

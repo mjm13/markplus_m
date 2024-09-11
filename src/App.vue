@@ -11,25 +11,38 @@
                          node-key="id"
                          @node-click="handleNodeClick">
                         <template #default="{ node, data }">
-                          <el-icon>
-                            <Folder/>
-                          </el-icon>
-                          {{ data.title }}
+                          <div class="bookmark-node">
+                            <el-icon class="folder-icon">
+                              <Folder/>
+                            </el-icon>
+                            <span class="bookmark-title">{{ data.title }}</span>
+                            <el-tag
+                                :round="true"
+                                class="child-count-tag"
+                                size="small"
+                                title="子节点数量"
+                                type="info"
+                            >
+                              {{ data.childrenCount }}
+                            </el-tag>
+                          </div>
                         </template>
                 </el-tree>
             </el-scrollbar>
         </el-aside>
         <el-container>
-            <el-header style="border: 1px solid red ">
+          <el-header height="30px">
                 <el-space wrap>
-                    <el-select v-model="searchQuery.prop" placeholder="请选择" style="width: 80px;">
+                  <el-select v-model="searchQuery.prop" style="width: 80px;">
                         <el-option v-for="item in searchQuery.options" :key="item.value" :label="item.label"
                                    :value="item.value">
                         </el-option>
                     </el-select>
-                    <el-input v-model="searchQuery.value" placeholder="搜索书签" style="width: 200px;"></el-input>
+                  <el-input v-model="searchQuery.value"
+                            placeholder="搜索书签"
+                            style="width: 200px;" @keydown.enter="searchBookmarks"
+                  ></el-input>
 
-                    <el-button type="primary" @click="searchBookmarks">搜索</el-button>
                 </el-space>
             </el-header>
             <el-main>
@@ -40,19 +53,54 @@
                          draggable
                          node-key="id">
                   <template #default="{ node, data }">
-                    <template v-if="data.type === 'folder'">
-                      <el-icon>
-                        <Folder/>
-                      </el-icon>
-                      {{ data.title }}
-                    </template>
-                    <template v-else>
-                      <el-link :href="data.url" target="_blank">
-                        <img :src="getFaviconUrl(data.url)" style="padding-right: 10px"/>
-                        {{ data.title? data.title : data.url }}
-                      </el-link>
-                    </template>
+                    <el-row style="width: 100%">
+                      <el-col :span="21">
+                        <template v-if="data.type === 'folder'">
+                          <el-icon style="margin-right: 20px;">
+                            <Folder/>
+                          </el-icon>
+                          <el-text>
+                            {{ data.title }}
+                          </el-text>
+                        </template>
+                        <template v-else>
+                          <img :src="getFaviconUrl(data.url)" style="height: 1em;width:1em;margin-right: 20px"/>
+                          <el-text style="width: 800px" truncated @dblclick="openUrl(data)">
+                            {{ data.title ? data.title : data.url }}
+                          </el-text>
+                        </template>
+                      </el-col>
+                      <el-col :span="3">
+                        <el-tooltip
+                            :raw-content="true"
+                            effect="light"
+                            placement="top"
+                        >
+                          <template #content>
+                            id：{{ data.id }}<br/>
+                            标题：{{ data.title }}<br/>
+                            目录：{{ data.treeName }}<br/>
+                            源标题：{{ data.metaTitle }}<br/>
+                            源关键字：{{ data.metaKeywords }}<br/>
+                            源描述：{{ data.metaDescription }}<br/>
+                            源标签：{{ data.metaTags }}<br/>
+                            原网址：{{ data.url }}<br/>
+                            当前网址：{{ data.currentUrl }}
+                          </template>
+                          <el-icon color="#67C23A">
+                            <InfoFilled/>
+                          </el-icon>
+                        </el-tooltip>
+
+                        <template v-if="data.status === 2">
+                          <el-icon color="#409efc">
+                            <DocumentChecked/>
+                          </el-icon>
+                        </template>
+                      </el-col>
+                    </el-row>
                   </template>
+
                 </el-tree>
               </el-scrollbar>
             </el-main>
@@ -100,9 +148,12 @@ export default {
             }],
             bookmarks: [],
             searchQuery: {
-                prop: "",
+              prop: "all",
                 value: "",
                 options: [ {
+                  value: 'all',
+                  label: '全部'
+                }, {
                     value: 'title',
                     label: '标题'
                 }, {
@@ -118,10 +169,7 @@ export default {
                     value: 'url',
                     label: '网址'
                 }],
-            },
-            asideWidth: 200, // 初始宽度
-            isDragging: false, // 拖动状态
-            startX: 0 // 鼠标起始位置
+            }
         };
     },
     methods: {
@@ -140,8 +188,17 @@ export default {
           });
         },
         searchBookmarks() {
-
-        }
+          let _this = this;
+          backgroundConn.postMessage({
+            action: Constant.QUERY_BOOKMARKS,
+            prop: _this.searchQuery.prop,
+            operator: 'like',
+            value: _this.searchQuery.value
+          });
+        },
+      openUrl(data){
+        window.open(data.url, '_blank');
+      }
     },
     mounted() {
       const _this = this;
@@ -164,3 +221,27 @@ export default {
     }
 };
 </script>
+<style scoped>
+.bookmark-node {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.folder-icon {
+  margin-right: 4px;
+  color: #757575;
+}
+
+.bookmark-title {
+  color: #333;
+  margin-right: 6px;
+}
+
+.child-count-tag {
+  font-size: 10px;
+  height: 16px;
+  line-height: 16px;
+  padding: 0 4px;
+}
+</style>

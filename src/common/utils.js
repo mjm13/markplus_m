@@ -34,7 +34,7 @@ const Util={
       metaTitle:"",
       metaKeywords: "", // 扩展后增加meta中对应属性
       metaDescription: "", // 扩展后增加meta中对应属性
-      tags:"",//手动或自动解析关键词
+      metaTags:"",//手动或自动解析关键词
       type: node.children ? "folder" : "bookmark",
       childrenCount : node.children ? node.children.length : 0,
       status: 0, //0:未处理，1:爬取数据中,2:爬取完成，-1：无法访问，
@@ -48,7 +48,8 @@ const Util={
       map.set(node.id, { ...node, children: [] });
     });
     const tree = [];
-    let treeArr =  datas.toSorted((a, b) => a.index - b.index);
+    // let treeArr =  datas.toSorted((a, b) => a.index - b.index);
+    let treeArr =  datas;
     treeArr.forEach(node => {
       const parent = map.get(node.parentId);
       let temp = map.get(node.id);

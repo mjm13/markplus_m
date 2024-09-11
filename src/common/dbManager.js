@@ -29,10 +29,15 @@ const DBManager = {
     },
     getByUrl: async function (url){
         if(url){
+            // return this.queryBookmarks({
+            //     prop: 'url',
+            //     operator: 'like',
+            //     value: url.replace(/https?:\/\/|\/$/g, '')
+            // });
             return this.queryBookmarks({
                 prop: 'url',
-                operator: 'like',
-                value: url.replace(/https?:\/\/|\/$/g, '')
+                operator: 'eq',
+                value: url
             });
         }
     },
@@ -147,9 +152,16 @@ const DBManager = {
                     if (limit != -1 && count >= limit) {
                         resolve(results);
                     } else if (cursor) {
-                        if (operator === 'like') {
+                        if (operator === "like" && prop ==="all") {
+                            const props = ["title","url","treeName","metaTitle","metaKeywords","metaDescription","metaTags"];
+                            for (let pro of props) {
+                                if (cursor.value[pro] && cursor.value[pro].indexOf(value)>-1 ) {
+                                    results.push(cursor.value);
+                                }
+                            }
+                        }else if (operator === "like") {
                             if (cursor.value[prop] && cursor.value[prop].indexOf(value)>-1 ) {
-                                results.push(cursor.value);
+                                    results.push(cursor.value);
                             }
                         } else {
                             switch (operator) {
@@ -167,7 +179,8 @@ const DBManager = {
                         cursor.continue();
                     } else {
                         console.log(`搜索完成，找到 ${results.length} 个结果`);
-                        resolve(results);
+                        let datas = results.toSorted((a, b) => a.index - b.index);
+                        resolve([...new Set(datas)]);
                     }
                 };
 
