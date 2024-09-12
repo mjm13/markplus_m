@@ -29,11 +29,6 @@ const DBManager = {
     },
     getByUrl: async function (url){
         if(url){
-            // return this.queryBookmarks({
-            //     prop: 'url',
-            //     operator: 'like',
-            //     value: url.replace(/https?:\/\/|\/$/g, '')
-            // });
             return this.queryBookmarks({
                 prop: 'url',
                 operator: 'eq',

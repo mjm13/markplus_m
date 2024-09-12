@@ -31,19 +31,24 @@
             </el-scrollbar>
         </el-aside>
         <el-container>
-          <el-header height="30px">
-                <el-space wrap>
-                  <el-select v-model="searchQuery.prop" style="width: 80px;">
+          <el-header height="30px" style="display: flex; justify-content: center; align-items: center;">
+
+                  <el-input v-model="searchQuery.value"
+                            size="default"
+                            :input-style="{width:'60%'}"
+                            placeholder="搜索书签"
+                            style="width: 60%;" @keydown.enter="searchBookmarks">
+                    <template #prefix>
+                      <el-select  v-model="searchQuery.prop" size="default" style="margin-left:-10px;width: 80px;">
                         <el-option v-for="item in searchQuery.options" :key="item.value" :label="item.label"
                                    :value="item.value">
                         </el-option>
-                    </el-select>
-                  <el-input v-model="searchQuery.value"
-                            placeholder="搜索书签"
-                            style="width: 200px;" @keydown.enter="searchBookmarks"
-                  ></el-input>
-
-                </el-space>
+                      </el-select>
+                    </template>
+                    <template #suffix>
+                      <el-icon class="el-input__icon"><search /></el-icon>
+                    </template>
+                  </el-input>
             </el-header>
             <el-main>
               <el-scrollbar style="border-radius: 4px;box-shadow: 0 2px 12px 0 #909399">
@@ -65,7 +70,7 @@
                         </template>
                         <template v-else>
                           <img :src="getFaviconUrl(data.url)" style="height: 1em;width:1em;margin-right: 20px"/>
-                          <el-text style="width: 800px" truncated @dblclick="openUrl(data)">
+                          <el-text class="bookmark-text" truncated @dblclick="openUrl(data)">
                             {{ data.title ? data.title : data.url }}
                           </el-text>
                         </template>
@@ -218,6 +223,12 @@ export default {
         operator: 'eq',
         value: 'folder'
       });
+      backgroundConn.postMessage({
+        action: Constant.QUERY_BOOKMARKS,
+        prop: 'parentId',
+        operator: 'eq',
+        value: '1'
+      });
     }
 };
 </script>
@@ -226,6 +237,16 @@ export default {
   display: flex;
   align-items: center;
   font-size: 13px;
+}
+.bookmark-text {
+  color: initial; /* 初始颜色 */
+  text-decoration: none; /* 无下划线 */
+  width: 800px;
+}
+.bookmark-text:hover {
+  color: #409EFF; /* 悬浮时的颜色 */
+  text-decoration: underline; /* 悬浮时的下划线 */
+  width: 800px;
 }
 
 .folder-icon {
