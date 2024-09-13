@@ -35,12 +35,38 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     }
 });
 
+chrome.webNavigation.onErrorOccurred.addListener((details) => {
+    let url = details.url;
+    const key = details.tabId + " ";
+    console.log("打开标签异常!")
+    chrome.storage.local.get(key, (items) => {
+        // Pass any observed errors down the promise chain.
+        if (chrome.runtime.lastError) {
+            return reject(chrome.runtime.lastError);
+        }
+        chrome.storage.local.remove(key);
+        console.log("异常标签搜索书签", searchUrl)
+        DBManager.getByUrl(url).then(datas => {
+            if (Array.isArray(datas) && datas.length > 0) {
+                const bookmark = datas[0];
+                // if (bookmark && bookmark.id && bookmark.status!=2) { // 如果是书签地址
+                if (bookmark && bookmark.id) { // 如果是书签地址
+                    console.log("getByUrl找到书签", bookmark)
+                    bookmark.currentUrl = url;
+                    bookmark.status = -1;
+                    DBManager.saveBookmarks([bookmark]);
+                }
+            }
+
+        });
+    });
+});
+
 // 监听网页加载完成事件
 chrome.webNavigation.onCompleted.addListener((details) => {
     let url = details.url;
     const tabId = details.tabId;
     const key = details.tabId + " ";
-
     if (url != 'about:blank') {
         chrome.storage.local.get(key, (items) => {
             // Pass any observed errors down the promise chain.
@@ -69,42 +95,6 @@ chrome.webNavigation.onCompleted.addListener((details) => {
         });
     }
 });
-
-//todo主动打开url并触发更新书签
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'fetchUrl') {
-        chrome.tabs.create({url: request.url, active: false}, (tab) => {
-            const tabId = tab.id;
-
-            const listener = (details) => {
-                if (details.tabId === tabId && details.frameId === 0) {
-                    chrome.webNavigation.onCompleted.removeListener(listener);
-
-                    chrome.scripting.executeScript({
-                        target: {tabId: tabId},
-                        function: () => {
-                            const metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
-                            const metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
-                            const metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
-                            return {metaKeywords, metaTitle, metaDescription};
-                        }
-                    }, (results) => {
-                        chrome.tabs.remove(tabId);
-                        if (chrome.runtime.lastError) {
-                            sendResponse({error: chrome.runtime.lastError.message});
-                        } else {
-                            sendResponse({data: results[0].result});
-                        }
-                    });
-                }
-            };
-
-            chrome.webNavigation.onCompleted.addListener(listener);
-        });
-        return true;  // 保持消息通道开放
-    }
-});
-
 
 //长连接模式
 chrome.runtime.onConnect.addListener(function (port) {
@@ -162,4 +152,39 @@ function updateBookMark(bookmark,tabId){
         }
     });
 }
+
+//todo主动打开url并触发更新书签
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'fetchUrl') {
+        chrome.tabs.create({url: request.url, active: false}, (tab) => {
+            const tabId = tab.id;
+
+            const listener = (details) => {
+                if (details.tabId === tabId && details.frameId === 0) {
+                    chrome.webNavigation.onCompleted.removeListener(listener);
+
+                    chrome.scripting.executeScript({
+                        target: {tabId: tabId},
+                        function: () => {
+                            const metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
+                            const metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
+                            const metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
+                            return {metaKeywords, metaTitle, metaDescription};
+                        }
+                    }, (results) => {
+                        chrome.tabs.remove(tabId);
+                        if (chrome.runtime.lastError) {
+                            sendResponse({error: chrome.runtime.lastError.message});
+                        } else {
+                            sendResponse({data: results[0].result});
+                        }
+                    });
+                }
+            };
+
+            chrome.webNavigation.onCompleted.addListener(listener);
+        });
+        return true;  // 保持消息通道开放
+    }
+});
 

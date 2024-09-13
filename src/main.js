@@ -6,6 +6,7 @@ import 'element-plus/dist/index.css';
 
 const app = createApp(App);
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+    console.log("key",key);
     app.component(key, component)
 }
 app.use(ElementPlus,{ size: 'small' });
