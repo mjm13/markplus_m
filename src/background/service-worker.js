@@ -45,7 +45,7 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
             return reject(chrome.runtime.lastError);
         }
         chrome.storage.local.remove(key);
-        console.log("异常标签搜索书签", searchUrl)
+        console.log("异常标签搜索书签", url)
         DBManager.getByUrl(url).then(datas => {
             if (Array.isArray(datas) && datas.length > 0) {
                 const bookmark = datas[0];
@@ -103,9 +103,9 @@ chrome.runtime.onConnect.addListener(function (port) {
             DBManager.queryBookmarks(params).then(datas => {
                 port.postMessage({action: Constant.QUERY_CATALOG, datas: Util.getRootTree(datas)});
             })
-        }else if(params.action === Constant.QUERY_BOOKMARKS){
+        }else{
             DBManager.queryBookmarks(params).then(datas => {
-                port.postMessage({action: Constant.QUERY_BOOKMARKS, datas: datas});
+                port.postMessage({action: params.action, datas: datas});
             })
         }
     });

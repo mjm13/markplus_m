@@ -1,7 +1,8 @@
 
 const Constant={
     QUERY_BOOKMARKS:"queryBookmarks",
-    QUERY_CATALOG:"queryCatalog"
+    QUERY_CATALOG:"queryCatalog",
+    STATISTICS_TOTAL:"statisticsTotal",
 }
 
 

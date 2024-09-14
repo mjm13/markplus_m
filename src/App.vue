@@ -4,21 +4,27 @@
       <el-row style="width: 100%;">
         <el-col :span="5" style="display: flex;align-items: end;">
           <el-space :size="40" >
-            <el-badge :max="10000" type="info" :value="3000" title="书签总数">
+            <el-badge :max="10000" type="info" :value="statistics.total" title="书签总数">
               <el-icon size="20px">
                 <Collection />
               </el-icon>
             </el-badge>
 
-            <el-badge :max="10000" type="success"  :value="3"  title="已获取源数据书签数">
+            <el-badge :max="10000" type="success"  :value="statistics.over"  title="已获取源数据书签数">
               <el-icon size="20px">
-                <Collection />
+                <DocumentChecked />
               </el-icon>
             </el-badge>
 
-            <el-badge :max="10000" type="danger"  :value="20"  title="异常书签数">
+            <el-badge :max="10000" type="danger"  :value="statistics.error"  title="异常书签数">
               <el-icon size="20px">
-                <Collection />
+                <DocumentDelete />
+              </el-icon>
+            </el-badge>
+
+            <el-badge :max="10000" type="danger"  :value="statistics.change"  title="网址发生变化">
+              <el-icon size="20px">
+                <Link />
               </el-icon>
             </el-badge>
           </el-space>
@@ -27,7 +33,7 @@
           <el-input v-model="searchQuery.value"
                     placeholder="搜索书签"
                     size="default"
-                    style="width: 90%"
+                    style="width: 98%"
                     @keydown.enter="searchBookmarks">
             <template #prefix>
               <el-select
@@ -51,7 +57,10 @@
           </el-input>
         </el-col>
         <el-col :span="6">
-222
+          <el-space >
+            <el-button size="default" type="success" :icon="Promotion" title="获取网页源数据" circle>
+            </el-button>
+          </el-space>
         </el-col>
       </el-row>
 
@@ -176,6 +185,7 @@ import {
   ElTableColumn,
   ElTree
 } from 'element-plus';
+import {Promotion} from '@element-plus/icons-vue'
 
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 
@@ -192,7 +202,8 @@ export default {
         ElTree,
         ElLink,
         ElInput,
-        ElButton
+        ElButton,
+        Promotion
     },
     data() {
         return {
@@ -200,6 +211,12 @@ export default {
                 id: 0,
                 tiltle: "书签"
             }],
+            statistics:{
+              total:0,
+              error:0,
+              over:0,
+              change:0
+            },
             bookmarks: [],
             searchQuery: {
               prop: "all",
@@ -263,6 +280,27 @@ export default {
           _this.treeData = result.datas;
         } else if (result.action === Constant.QUERY_BOOKMARKS) {
           _this.bookmarks = result.datas;
+        } else if (result.action === Constant.STATISTICS_TOTAL) {
+          let total = result.datas.length;
+          let error = 0;
+          let over = 0;
+          let change =0;
+          for (let i = 0; i < result.datas.length; i++) {
+            let data =  result.datas[i];
+            if (data.status == -1) {
+              error++;
+            }else if(data.status == 2){
+              over++;
+            }
+            if(data.url && data.currentUrl && data.url != data.currentUrl){
+              change++;
+            }
+          }
+          _this.statistics.total = total;
+          _this.statistics.error = error;
+          _this.statistics.over = over;
+          _this.statistics.change = change;
+
         }
       });
 
@@ -277,6 +315,12 @@ export default {
         prop: 'parentId',
         operator: 'eq',
         value: '1'
+      });
+      backgroundConn.postMessage({
+        action: Constant.STATISTICS_TOTAL,
+        prop: 'id',
+        operator: 'gt',
+        value: '0'
       });
     }
 };
