@@ -2,7 +2,7 @@
   <el-container>
     <el-header height="40px" >
       <el-row style="width: 100%;">
-        <el-col :span="5" style="display: flex;align-items: end;">
+        <el-col :span="4" style="display: flex;align-items: end;">
           <el-space :size="40" >
             <el-badge :max="10000" type="info" :value="statistics.total" title="书签总数">
               <el-icon size="20px">
@@ -29,7 +29,7 @@
             </el-badge>
           </el-space>
         </el-col>
-        <el-col :span="9">
+        <el-col :span="10">
           <el-input v-model="searchQuery.value"
                     placeholder="搜索书签"
                     size="default"
@@ -58,7 +58,8 @@
         </el-col>
         <el-col :span="6">
           <el-space >
-            <el-button size="default" type="success" :icon="Promotion" title="获取网页源数据" circle>
+            <el-button size="default" type="success" title="获取网页源数据" circle>
+              <el-icon size="18"><Promotion/></el-icon>
             </el-button>
           </el-space>
         </el-col>
@@ -185,7 +186,6 @@ import {
   ElTableColumn,
   ElTree
 } from 'element-plus';
-import {Promotion} from '@element-plus/icons-vue'
 
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 
@@ -203,7 +203,6 @@ export default {
         ElLink,
         ElInput,
         ElButton,
-        Promotion
     },
     data() {
         return {
@@ -348,12 +347,12 @@ export default {
   display: inline-block;
   color: initial; /* 初始颜色 */
   text-decoration: none; /* 无下划线 */
-  width: 800px;
+  width: 100%;
 }
 .bookmark-text:hover {
   color: #409EFF; /* 悬浮时的颜色 */
   text-decoration: underline; /* 悬浮时的下划线 */
-  width: 800px;
+  width: 100%;
 }
 
 .folder-icon {

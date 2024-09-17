@@ -31,7 +31,12 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     const url = details.url;
     const tabId = details.tabId +" " ;
     if (url && url != 'about:blank' && url != 'about:srcdoc') {
-        chrome.storage.local.set({ [tabId]: url });
+        chrome.storage.local.get(tabId, (items) => {
+            console.log("test",items);
+            if(!items.key){
+                chrome.storage.local.set({ [tabId]: url });
+            }
+        });
     }
 });
 
@@ -75,7 +80,7 @@ chrome.webNavigation.onCompleted.addListener((details) => {
             }
             let searchUrl = url;
             if(items[key] && items[key] != url){
-                console.log("原始url与打开url不一致",items[key],url)
+                console.log("原始url：",items[key],"，当前url：",url)
                 searchUrl = items[key];
                 chrome.storage.local.remove(key);
             }
