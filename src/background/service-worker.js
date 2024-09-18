@@ -1,6 +1,8 @@
 import DBManager from '../common/dbManager.js';
 import Constant from '../common/constant.js';
 import Util from "../common/utils.js";
+// TODO 爬取书签后清理local缓存
+
 //初始化indexedDB
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Bookmark Extender 插件已安装");
