@@ -64,6 +64,13 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
 
         });
     });
+    const removeTabId = "remove_"+details.tabId;
+    chrome.storage.local.get(removeTabId, (items) => {
+        if(items[removeTabId]){
+            chrome.storage.local.remove(removeTabId);
+            chrome.tabs.remove(items[removeTabId]);
+        }
+    });
 });
 
 // 监听网页加载完成事件
@@ -93,6 +100,15 @@ chrome.webNavigation.onCompleted.addListener((details) => {
                         bookmark.currentUrl =url;
                         updateBookMark(bookmark, tabId);
                     }
+                }else{
+                    console.log("未找到书签:",searchUrl)
+                    const removeTabId = "remove_"+details.tabId;
+                    chrome.storage.local.get(removeTabId, (items) => {
+                        if(items[removeTabId]){
+                            chrome.storage.local.remove(removeTabId);
+                            chrome.tabs.remove(items[removeTabId]);
+                        }
+                    });
                 }
 
             });
@@ -107,12 +123,17 @@ chrome.runtime.onConnect.addListener(function (port) {
             DBManager.queryBookmarks(params).then(datas => {
                 port.postMessage({action: Constant.QUERY_CATALOG, datas: Util.getRootTree(datas)});
             })
-        }else if(params.action === Constant.CRAWL_METlA){
+        }else if(params.action === Constant.CRAWL_META){
             DBManager.queryBookmarks(params).then(async datas => {
+                await chrome.storage.local.clear();
+
                 for (const data of datas) {
-                    console.log(data.url)
-                    // chrome.tabs.create({url: data.url, active: false});
-                    await chromeTabsCreateAsync({url: data.url, active: false});
+                    await awaitLoad();
+                    console.log("获取源数据:",data.url);
+                    await chrome.tabs.create({url: data.url, active: false}, function (tab) {
+                        const removeTabId = "remove_" + tab.id;
+                        chrome.storage.local.set({ [removeTabId]: tab.id });
+                    });
                 }
             })
         } else{
@@ -123,18 +144,23 @@ chrome.runtime.onConnect.addListener(function (port) {
     });
 });
 
-function chromeTabsCreateAsync(createProperties) {
-    return new Promise((resolve, reject) => {
-        chrome.tabs.create(createProperties, tab => {
-            if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError));
+async function awaitLoad() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(null, (items) => {
+            let removeCount = 0;
+            for (let key in items) {
+                if (key.startsWith('remove_')) {
+                    removeCount++;
+                }
+            }
+            if (removeCount > 5) {
+                setTimeout(() => awaitLoad().then(resolve), 3000);
             } else {
-                resolve(tab);
+                resolve(removeCount);
             }
         });
     });
 }
-
 
 //在打开的tab页中执行脚本获取元数据
 function updateBookMark(bookmark,tabId){
@@ -177,9 +203,9 @@ function updateBookMark(bookmark,tabId){
         }
         const removeTabId = "remove_"+tabId;
         chrome.storage.local.get(removeTabId, (items) => {
-            if(items.key){
+            if(items[removeTabId]){
                 chrome.storage.local.remove(removeTabId);
-                chrome.tabs.remove(tabId);
+                chrome.tabs.remove(items[removeTabId]);
             }
         });
     });
