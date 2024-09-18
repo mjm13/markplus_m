@@ -31,11 +31,11 @@ chrome.action.onClicked.addListener((tab) => {
 
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     const url = details.url;
-    const tabId = details.tabId +" " ;
+    const tabKey = Util.getTabKey(details.tabId);
     if (url && url != 'about:blank' && url != 'about:srcdoc') {
-        chrome.storage.local.get(tabId, (items) => {
+        chrome.storage.local.get(tabKey, (items) => {
             if(!items.key){
-                chrome.storage.local.set({ [tabId]: url });
+                chrome.storage.local.set({ [tabKey]: url });
             }
         });
     }
@@ -43,21 +43,18 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 
 chrome.webNavigation.onErrorOccurred.addListener((details) => {
     let url = details.url;
-    const key = details.tabId + " ";
+    const tabKey = Util.getTabKey(details.tabId);
     console.log("打开标签异常!")
-    chrome.storage.local.get(key, (items) => {
+    chrome.storage.local.get(tabKey, (items) => {
+        chrome.storage.local.remove(tabKey);
         // Pass any observed errors down the promise chain.
-        if (chrome.runtime.lastError) {
-            return reject(chrome.runtime.lastError);
-        }
-        chrome.storage.local.remove(key);
         console.log("异常标签搜索书签", url)
         DBManager.getByUrl(url).then(datas => {
             if (Array.isArray(datas) && datas.length > 0) {
                 const bookmark = datas[0];
                 // if (bookmark && bookmark.id && bookmark.status!=2) { // 如果是书签地址
                 if (bookmark && bookmark.id) { // 如果是书签地址
-                    console.log("getByUrl找到书签", bookmark)
+                    console.log("打开书签异常", bookmark)
                     bookmark.currentUrl = url;
                     bookmark.status = -1;
                     DBManager.saveBookmarks([bookmark]);
@@ -65,12 +62,15 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
             }
 
         });
+        if (chrome.runtime.lastError) {
+            return reject(chrome.runtime.lastError);
+        }
     });
-    const removeTabId = "remove_"+details.tabId;
-    chrome.storage.local.get(removeTabId, (items) => {
-        if(items[removeTabId]){
-            chrome.storage.local.remove(removeTabId);
-            chrome.tabs.remove(items[removeTabId]);
+    const removeTabKey = Util.getRemoveTabKey(details.tabId);
+    chrome.storage.local.get(removeTabKey, (items) => {
+        if(items[removeTabKey]){
+            chrome.storage.local.remove(removeTabKey);
+            chrome.tabs.remove(items[removeTabKey]);
         }
     });
 });
@@ -79,18 +79,19 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
 chrome.webNavigation.onCompleted.addListener((details) => {
     let url = details.url;
     const tabId = details.tabId;
-    const key = details.tabId + " ";
+    const tabKey =  Util.getTabKey(details.tabId);
+
     if (url != 'about:blank') {
-        chrome.storage.local.get(key, (items) => {
+        chrome.storage.local.get(tabKey, (items) => {
             // Pass any observed errors down the promise chain.
             if (chrome.runtime.lastError) {
                 return reject(chrome.runtime.lastError);
             }
             let searchUrl = url;
-            if(items[key] && items[key] != url){
-                console.log("原始url：",items[key],"，当前url：",url)
-                searchUrl = items[key];
-                chrome.storage.local.remove(key);
+            if(items[tabKey] && items[tabKey] != url){
+                console.log("原始url：",items[tabKey],"，当前url：",url)
+                searchUrl = items[tabKey];
+                chrome.storage.local.remove(tabKey);
             }
             console.log("搜索书签",searchUrl)
             DBManager.getByUrl(searchUrl).then(datas => {
@@ -98,17 +99,17 @@ chrome.webNavigation.onCompleted.addListener((details) => {
                     const bookmark = datas[0];
                     // if (bookmark && bookmark.id && bookmark.status!=2) { // 如果是书签地址
                     if (bookmark && bookmark.id) { // 如果是书签地址
-                        console.log("getByUrl找到书签", bookmark)
+                        console.log("加载完成找到书签", bookmark)
                         bookmark.currentUrl =url;
                         updateBookMark(bookmark, tabId);
                     }
                 }else{
                     console.log("未找到书签:",searchUrl)
-                    const removeTabId = "remove_"+details.tabId;
-                    chrome.storage.local.get(removeTabId, (items) => {
-                        if(items[removeTabId]){
-                            chrome.storage.local.remove(removeTabId);
-                            chrome.tabs.remove(items[removeTabId]);
+                    const removeTabKey = Util.getRemoveTabKey(tabId);
+                    chrome.storage.local.get(removeTabKey, (items) => {
+                        if(items[removeTabKey]){
+                            chrome.storage.local.remove(removeTabKey);
+                            chrome.tabs.remove(items[removeTabKey]);
                         }
                     });
                 }
@@ -133,8 +134,8 @@ chrome.runtime.onConnect.addListener(function (port) {
                     await awaitLoad();
                     console.log("获取源数据:",data.url);
                     await chrome.tabs.create({url: data.url, active: false}, function (tab) {
-                        const removeTabId = "remove_" + tab.id;
-                        chrome.storage.local.set({ [removeTabId]: tab.id });
+                        const removeTabKey = Util.getRemoveTabKey(tab.id);
+                        chrome.storage.local.set({ [removeTabKey]: tab.id });
                     });
                 }
             })
@@ -203,11 +204,12 @@ function updateBookMark(bookmark,tabId){
             bookmark.status = 2;
             DBManager.saveBookmarks([bookmark]);
         }
-        const removeTabId = "remove_"+tabId;
-        chrome.storage.local.get(removeTabId, (items) => {
-            if(items[removeTabId]){
-                chrome.storage.local.remove(removeTabId);
-                chrome.tabs.remove(items[removeTabId]);
+
+        const removeTabKey = Util.getRemoveTabKey(tabId);
+        chrome.storage.local.get(removeTabKey, (items) => {
+            if(items[removeTabKey]){
+                chrome.storage.local.remove(removeTabKey);
+                chrome.tabs.remove(items[removeTabKey]);
             }
         });
     });
