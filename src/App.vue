@@ -58,7 +58,7 @@
         </el-col>
         <el-col :span="6">
           <el-space >
-            <el-button size="default" type="success" title="获取网页源数据" circle>
+            <el-button circle size="default" title="获取网页源数据" type="success" @click="crawlMeta">
               <el-icon size="18"><Promotion/></el-icon>
             </el-button>
           </el-space>
@@ -76,7 +76,7 @@
                        default-expand-all
                        draggable
                        node-key="id"
-                       @node-click="handleNodeClick">
+                       @node-click="queryByDir">
                 <template #default="{ node, data }">
                   <div class="bookmark-node">
                     <el-icon class="folder-icon">
@@ -249,12 +249,20 @@ export default {
             url.searchParams.set("size", "16");
             return url.toString();
         },
-        handleNodeClick(data) {
+        queryByDir(data) {
           backgroundConn.postMessage({
             action: Constant.QUERY_BOOKMARKS,
             prop: 'parentId',
             operator: 'eq',
             value: data.id
+          });
+        },
+        crawlMeta() {
+          backgroundConn.postMessage({
+            action: Constant.CRAWL_META,
+            prop: 'type',
+            operator: 'eq',
+            value: 'bookmark'
           });
         },
         searchBookmarks() {

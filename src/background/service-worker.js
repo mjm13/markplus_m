@@ -32,7 +32,6 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     const tabId = details.tabId +" " ;
     if (url && url != 'about:blank' && url != 'about:srcdoc') {
         chrome.storage.local.get(tabId, (items) => {
-            console.log("test",items);
             if(!items.key){
                 chrome.storage.local.set({ [tabId]: url });
             }
@@ -108,13 +107,34 @@ chrome.runtime.onConnect.addListener(function (port) {
             DBManager.queryBookmarks(params).then(datas => {
                 port.postMessage({action: Constant.QUERY_CATALOG, datas: Util.getRootTree(datas)});
             })
-        }else{
+        }else if(params.action === Constant.CRAWL_METlA){
+            DBManager.queryBookmarks(params).then(async datas => {
+                for (const data of datas) {
+                    console.log(data.url)
+                    // chrome.tabs.create({url: data.url, active: false});
+                    await chromeTabsCreateAsync({url: data.url, active: false});
+                }
+            })
+        } else{
             DBManager.queryBookmarks(params).then(datas => {
                 port.postMessage({action: params.action, datas: datas});
             })
         }
     });
 });
+
+function chromeTabsCreateAsync(createProperties) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.create(createProperties, tab => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError));
+            } else {
+                resolve(tab);
+            }
+        });
+    });
+}
+
 
 //在打开的tab页中执行脚本获取元数据
 function updateBookMark(bookmark,tabId){
@@ -155,41 +175,13 @@ function updateBookMark(bookmark,tabId){
             bookmark.status = 2;
             DBManager.saveBookmarks([bookmark]);
         }
+        const removeTabId = "remove_"+tabId;
+        chrome.storage.local.get(removeTabId, (items) => {
+            if(items.key){
+                chrome.storage.local.remove(removeTabId);
+                chrome.tabs.remove(tabId);
+            }
+        });
     });
 }
-
-//todo主动打开url并触发更新书签
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'fetchUrl') {
-        chrome.tabs.create({url: request.url, active: false}, (tab) => {
-            const tabId = tab.id;
-
-            const listener = (details) => {
-                if (details.tabId === tabId && details.frameId === 0) {
-                    chrome.webNavigation.onCompleted.removeListener(listener);
-
-                    chrome.scripting.executeScript({
-                        target: {tabId: tabId},
-                        function: () => {
-                            const metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
-                            const metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
-                            const metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
-                            return {metaKeywords, metaTitle, metaDescription};
-                        }
-                    }, (results) => {
-                        chrome.tabs.remove(tabId);
-                        if (chrome.runtime.lastError) {
-                            sendResponse({error: chrome.runtime.lastError.message});
-                        } else {
-                            sendResponse({data: results[0].result});
-                        }
-                    });
-                }
-            };
-
-            chrome.webNavigation.onCompleted.addListener(listener);
-        });
-        return true;  // 保持消息通道开放
-    }
-});
 
