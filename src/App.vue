@@ -1,86 +1,83 @@
 <template>
   <el-container>
-    <el-header height="40px" >
-      <el-row style="width: 100%;">
-        <el-col :span="4" style="display: flex;align-items: end;">
-          <el-space :size="40" >
-            <el-badge :max="10000" type="info" :value="statistics.total" title="书签总数">
-              <el-icon size="20px">
-                <Collection />
-              </el-icon>
-            </el-badge>
+    <el-header height="50px" style="width: 100%;display: flex;flex-direction: row;padding: 0px;">
+      <div style="width: 300px;align-self: center;">
+        <el-space :size="40" >
+          <el-badge :max="10000" type="info" :value="statistics.total" title="书签总数">
+            <el-icon size="20px">
+              <Collection />
+            </el-icon>
+          </el-badge>
 
-            <el-badge :max="10000" type="success"  :value="statistics.over"  title="已获取源数据书签数">
-              <el-icon size="20px">
-                <DocumentChecked />
-              </el-icon>
-            </el-badge>
+          <el-badge :max="10000" type="success"  :value="statistics.over"  title="已获取源数据书签数">
+            <el-icon size="20px">
+              <DocumentChecked />
+            </el-icon>
+          </el-badge>
 
-            <el-badge :max="10000" type="danger"  :value="statistics.error"  title="异常书签数">
-              <el-icon size="20px">
-                <DocumentDelete />
-              </el-icon>
-            </el-badge>
+          <el-badge :max="10000" type="danger"  :value="statistics.error"  title="异常书签数">
+            <el-icon size="20px">
+              <DocumentDelete />
+            </el-icon>
+          </el-badge>
 
-            <el-badge :max="10000" type="danger"  :value="statistics.change"  title="网址发生变化">
-              <el-icon size="20px">
-                <Link />
-              </el-icon>
-            </el-badge>
-          </el-space>
-        </el-col>
-        <el-col :span="10">
-          <el-input v-model="searchQuery.value"
-                    placeholder="搜索书签"
-                    size="default"
-                    style="width: 98%"
-                    @keydown.enter="searchBookmarks">
-            <template #prefix>
-              <el-select
-                  v-model="searchQuery.prop"
-                  class="custom-select"
+          <el-badge :max="10000" type="danger"  :value="statistics.change"  title="网址发生变化">
+            <el-icon size="20px">
+              <Link />
+            </el-icon>
+          </el-badge>
+        </el-space>
+      </div>
+      <div style="width: calc(100% - 800px);align-self: center;padding-left: 20px;">
+        <el-input v-model="searchQuery.value"
+                  placeholder="搜索书签"
                   size="default"
-              >
-                <el-option
-                    v-for="item in searchQuery.options"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value">
-                </el-option>
-              </el-select>
-            </template>
-            <template #suffix>
-              <el-icon class="el-input__icon">
-                <search/>
-              </el-icon>
-            </template>
-          </el-input>
-        </el-col>
-        <el-col :span="6">
-          <el-space >
-            <el-button circle size="default" title="获取网页源数据" type="success" @click="crawlMeta">
-              <el-icon size="18"><Promotion/></el-icon>
-            </el-button>
-
-            <el-button circle size="default" title="下载书签json" type="info" @click="downLoadBookmarks">
-              <el-icon size="18"><Download /></el-icon>
-            </el-button>
-
-            <el-upload
-                action="#"
-                :auto-upload="false"
-                :on-change="handleFileUpload"
-                :show-file-list="false"
+                  style="width: 98%"
+                  @keydown.enter="searchBookmarks">
+          <template #prefix>
+            <el-select
+                v-model="searchQuery.prop"
+                class="custom-select"
+                size="default"
             >
-              <el-button circle size="default" type="success" title="上传书签json">
-                <el-icon  size="18"><Upload /></el-icon>
-              </el-button>
-            </el-upload>
+              <el-option
+                  v-for="item in searchQuery.options"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+              </el-option>
+            </el-select>
+          </template>
+          <template #suffix>
+            <el-icon class="el-input__icon">
+              <search/>
+            </el-icon>
+          </template>
+        </el-input>
+      </div>
+      <div style="align-self: center;">
+        <el-space >
+          <el-button circle size="default" title="获取网页源数据" type="success" @click="crawlMeta">
+            <el-icon size="18"><Promotion/></el-icon>
+          </el-button>
 
-          </el-space>
-        </el-col>
-      </el-row>
+          <el-button circle size="default" title="下载书签json" type="info" @click="downLoadBookmarks">
+            <el-icon size="18"><Download /></el-icon>
+          </el-button>
 
+          <el-upload
+              action="#"
+              :auto-upload="false"
+              :on-change="handleFileUpload"
+              :show-file-list="false"
+          >
+            <el-button circle size="default" type="success" title="上传书签json">
+              <el-icon  size="18"><Upload /></el-icon>
+            </el-button>
+          </el-upload>
+
+        </el-space>
+      </div>
     </el-header>
     <el-container style="height: 92vh">
       <el-aside
@@ -135,9 +132,10 @@
                             <template #content>
                               id：{{ data.id }}<br/>
                               标题：{{ data.title }}<br/>
-                              目录：{{ data.treeName }}
+                              目录：{{ data.treeName }}<br/>
+                              创建时间：{{ data.dateAddedTime }}
                             </template>
-                            <el-text class="dir-text">
+                            <el-text class="dir-text" @dblclick="queryByDir(data)">
                             {{ data.title }}
                           </el-text>
                           </el-tooltip>
@@ -158,7 +156,8 @@
                               源描述：{{ data.metaDescription }}<br/>
                               源标签：{{ data.metaTags }}<br/>
                               原网址：{{ data.url }}<br/>
-                              当前网址：{{ data.currentUrl }}
+                              当前网址：{{ data.currentUrl }}<br/>
+                              创建时间：{{ data.dateAddedTime }}
                             </template>
                           <el-text class="bookmark-text" truncated @dblclick="openUrl(data)">
                             {{ data.title ? data.title : data.url }}

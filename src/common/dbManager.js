@@ -169,6 +169,9 @@ const DBManager = {
                                 case 'lt':
                                     cursor.value[prop] <= value && results.push(cursor.value);
                                     break;
+                                case 'static-url-change':
+                                    cursor.value.url != cursor.value.currentUrl && results.push(cursor.value);
+                                    break;
                             }
                         }
                         cursor.continue();

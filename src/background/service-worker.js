@@ -143,7 +143,6 @@ chrome.runtime.onConnect.addListener(function (port) {
         }else if(params.action === Constant.CRAWL_META){
             DBManager.queryBookmarks(params).then(async datas => {
                 await chrome.storage.local.clear();
-
                 for (const data of datas) {
                     if (data.status != -1) {
                         continue
