@@ -37,15 +37,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     const url = details.url;
     const tabKey = Util.getTabKey(details.tabId);
     chrome.storage.local.get(tabKey, (result) => {
-        if (tabKey in result) {
-            console.log(`Key "${key}" 已存在,值未被修改`);
-        } else {
-            chrome.storage.local.set({[tabKey]: url}, () => {
-                console.log(`Key "${key}" 已被设置为: `, value);
-            });
+        if (!result[tabKey]) {
+            chrome.storage.local.set({[tabKey]: url});
         }
     });
-    // chrome.storage.local.set({[tabKey]: url});
 });
 
 //打开tab异常时清理缓存更新书签状态
