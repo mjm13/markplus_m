@@ -61,6 +61,22 @@
             <el-button circle size="default" title="获取网页源数据" type="success" @click="crawlMeta">
               <el-icon size="18"><Promotion/></el-icon>
             </el-button>
+
+            <el-button circle size="default" title="下载书签json" type="info" @click="downLoadBookmarks">
+              <el-icon size="18"><Download /></el-icon>
+            </el-button>
+
+            <el-upload
+                action="#"
+                :auto-upload="false"
+                :on-change="handleFileUpload"
+                :show-file-list="false"
+            >
+              <el-button circle size="default" type="success" title="上传书签json">
+                <el-icon  size="18"><Upload /></el-icon>
+              </el-button>
+            </el-upload>
+
           </el-space>
         </el-col>
       </el-row>
@@ -186,6 +202,7 @@ import {
   ElTableColumn,
   ElTree
 } from 'element-plus';
+import DBManager from "./common/dbManager.js";
 
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 
@@ -274,9 +291,30 @@ export default {
             value: _this.searchQuery.value
           });
         },
-      openUrl(data){
-        window.open(data.url, '_blank');
-      }
+        downLoadBookmarks() {
+          backgroundConn.postMessage({
+            action: Constant.DOWNLOAD_BOOKMARKS,
+            prop: 'id',
+            operator: 'gt',
+            value: -1
+          });
+        },
+        handleFileUpload(file){
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            try {
+              const bookmarks = JSON.parse(e.target.result);
+              DBManager.saveBookmarks(bookmarks)
+            } catch (error) {
+              console.error('Error parsing JSON: ', error);
+              ElMessage.error('解析书签失败')
+            }
+          }
+          reader.readAsText(file.raw)
+        },
+        openUrl(data){
+          window.open(data.url, '_blank');
+        }
     },
     mounted() {
       const _this = this;
@@ -287,7 +325,16 @@ export default {
           _this.treeData = result.datas;
         } else if (result.action === Constant.QUERY_BOOKMARKS) {
           _this.bookmarks = result.datas;
-        } else if (result.action === Constant.STATISTICS_TOTAL) {
+        } else if(result.action === Constant.DOWNLOAD_BOOKMARKS){
+          let newJsonString = JSON.stringify(result.datas, null, 2);
+          // 创建 Blob 对象
+          var blob = new Blob([newJsonString], { type: 'application/json' });
+          // 创建下载链接
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'data.json';
+          a.click();
+        }else if (result.action === Constant.STATISTICS_TOTAL) {
           let total = result.datas.length;
           let error = 0;
           let over = 0;
