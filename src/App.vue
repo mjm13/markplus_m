@@ -1,30 +1,42 @@
 <template>
   <el-container>
     <el-header height="50px" style="width: 100%;display: flex;flex-direction: row;padding: 0px;">
-      <div style="width: 300px;align-self: center;">
-        <el-space :size="40" >
-          <el-badge :max="10000" type="info" :value="statistics.total" title="书签总数">
-            <el-icon size="20px">
-              <Collection />
-            </el-icon>
+      <div style="width: 300px;align-self: end;padding-bottom: 10px;">
+        <el-space :size="30">
+          <el-badge :max="10000" :offset="[-20,-9]" :value="statistics.total" title="书签总数" type="info">
+            <el-button type="default" style="padding: 5px;"
+                       @click="searchStatisticsBookmarks({prop: 'parentId',operator: 'eq',value: '1'})">
+              <el-icon size="20px">
+                <Collection/>
+              </el-icon>
+            </el-button>
           </el-badge>
 
-          <el-badge :max="10000" type="success"  :value="statistics.over"  title="已获取源数据书签数">
+          <el-badge :max="10000" :offset="[-20,-9]" :value="statistics.over" title="已获取源数据书签数" type="success">
+            <el-button type="default" style="padding: 5px;"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: 2})">
             <el-icon size="20px">
               <DocumentChecked />
             </el-icon>
+            </el-button>
           </el-badge>
 
-          <el-badge :max="10000" type="danger"  :value="statistics.error"  title="异常书签数">
+          <el-badge :max="10000" :offset="[-20,-9]" :value="statistics.error" title="异常书签数" type="danger">
+            <el-button type="default" style="padding: 5px;"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: -1})">
             <el-icon size="20px">
               <DocumentDelete />
             </el-icon>
+            </el-button>
           </el-badge>
 
-          <el-badge :max="10000" type="danger"  :value="statistics.change"  title="网址发生变化">
+          <el-badge :max="10000" :offset="[-20,-9]" :value="statistics.change" title="网址发生变化" type="danger">
+            <el-button type="default" style="padding: 5px;"
+                       @click="searchStatisticsBookmarks({operator: 'staticUrlChange'})">
             <el-icon size="20px">
               <Link />
             </el-icon>
+            </el-button>
           </el-badge>
         </el-space>
       </div>
@@ -79,7 +91,7 @@
         </el-space>
       </div>
     </el-header>
-    <el-container style="height: 92vh">
+    <el-container style="height: 90vh">
       <el-aside
           :style="{ width: '300px',borderRight:'3px solid var(--el-border-color)' }"
       >
@@ -290,6 +302,10 @@ export default {
             value: _this.searchQuery.value
           });
         },
+        searchStatisticsBookmarks(param) {
+          let _this = this;
+          backgroundConn.postMessage({action: Constant.QUERY_BOOKMARKS,...param});
+        },
         downLoadBookmarks() {
           backgroundConn.postMessage({
             action: Constant.DOWNLOAD_BOOKMARKS,
@@ -320,7 +336,7 @@ export default {
 
       backgroundConn.onMessage.addListener(function(result) {
         // 使用 `_this` 代替 `this`
-        if (result.action === Constant.QUERY_CATALOG) {
+        if (result.action === Constant.QUERY_FOLDER) {
           _this.treeData = result.datas;
         } else if (result.action === Constant.QUERY_BOOKMARKS) {
           _this.bookmarks = result.datas;
@@ -358,7 +374,7 @@ export default {
       });
 
       backgroundConn.postMessage({
-        action: Constant.QUERY_CATALOG,
+        action: Constant.QUERY_FOLDER,
         prop: 'type',
         operator: 'eq',
         value: 'folder'

@@ -136,9 +136,9 @@ chrome.webNavigation.onCompleted.addListener((details) => {
 //长连接模式
 chrome.runtime.onConnect.addListener(function (port) {
     port.onMessage.addListener(function (params) {
-        if (params.action === Constant.QUERY_CATALOG) {
+        if (params.action === Constant.QUERY_FOLDER) {
             DBManager.queryBookmarks(params).then(datas => {
-                port.postMessage({action: Constant.QUERY_CATALOG, datas: Util.getRootTree(datas)});
+                port.postMessage({action: Constant.QUERY_FOLDER, datas: Util.getRootTree(datas)});
             })
         }else if(params.action === Constant.CRAWL_META){
             DBManager.queryBookmarks(params).then(async datas => {
