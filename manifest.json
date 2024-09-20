@@ -14,7 +14,7 @@
     "webNavigation"
   ],
   "host_permissions": [
-    "<all_urls>"  
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "src/background/service-worker.js",

@@ -144,9 +144,9 @@ chrome.runtime.onConnect.addListener(function (port) {
             DBManager.queryBookmarks(params).then(async datas => {
                 await chrome.storage.local.clear();
                 for (const data of datas) {
-                    if (data.status != -1) {
-                        continue
-                    }
+                    // if (data.status != -1) {
+                    //     continue
+                    // }
                     await awaitLoad();
                     console.log("获取源数据:",data.url);
                     await chrome.tabs.create({url: data.url, active: false}, function (tab) {
