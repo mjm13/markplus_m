@@ -62,6 +62,11 @@ const DBManager = {
 
                 let count = 0;
                 bookmarks.forEach(bookmark => {
+                    try{
+                        if(bookmark.currentUrl && !bookmark.currentDomain){
+                            bookmark.currentDomain = new URL(bookmark.currentUrl).hostname;
+                        }
+                    }catch (e) {}
                     const request = objectStore.put(bookmark);
                     request.onsuccess = () => {
                         count++;
@@ -170,7 +175,7 @@ const DBManager = {
                                     cursor.value[prop] <= value && results.push(cursor.value);
                                     break;
                                 case 'staticUrlChange':
-                                    cursor.value.url != cursor.value.currentUrl && results.push(cursor.value);
+                                    cursor.value.domain != cursor.value.currentDomain && results.push(cursor.value);
                                     break;
                             }
                         }

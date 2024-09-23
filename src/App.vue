@@ -69,6 +69,8 @@
       </div>
       <div style="align-self: center;">
         <el-space >
+          <el-switch v-model="setting.editModel" />
+
           <el-button circle size="default" title="获取网页源数据" type="success" @click="crawlMeta">
             <el-icon size="18"><Promotion/></el-icon>
           </el-button>
@@ -98,6 +100,7 @@
             <el-scrollbar>
               <el-tree :data="treeData"
                        :expand-on-click-node="false"
+                       :show-checkbox="setting.editModel"
                        default-expand-all
                        draggable
                        node-key="id"
@@ -126,6 +129,7 @@
               <el-scrollbar style="border-radius: 4px;box-shadow: 0 2px 12px 0 #909399">
                 <el-tree :data="bookmarks"
                          :expand-on-click-node="false"
+                         :show-checkbox="setting.editModel"
                          default-expand-all
                          draggable
                          node-key="id">
@@ -178,15 +182,25 @@
                         </template>
                       </el-col>
                       <el-col :span="3">
-                        <template v-if="data.status === 2">
-                          <el-icon color="#409efc">
-                            <DocumentChecked/>
-                          </el-icon>
+                        <template v-if="setting.editModel">
+                          <el-button  title="删除" type="danger" >
+                            <el-icon ><Delete /></el-icon>
+                          </el-button>
+                          <el-button  title="编辑" type="primary" >
+                            <el-icon ><Edit /></el-icon>
+                          </el-button>
                         </template>
-                        <template v-if="data.status === -1">
-                          <el-icon color="#F56C6C">
-                            <DocumentDelete/>
-                          </el-icon>
+                        <template v-if="setting.editModel===false">
+                          <template v-if="data.status === 2">
+                            <el-icon color="#409efc">
+                              <DocumentChecked/>
+                            </el-icon>
+                          </template>
+                          <template v-if="data.status === -1">
+                            <el-icon color="#F56C6C">
+                              <DocumentDelete/>
+                            </el-icon>
+                          </template>
                         </template>
                       </el-col>
                     </el-row>
@@ -214,6 +228,7 @@ import {
   ElTree
 } from 'element-plus';
 import DBManager from "./common/dbManager.js";
+import {Delete, Edit} from "@element-plus/icons-vue";
 
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 
@@ -221,6 +236,8 @@ const backgroundConn = chrome.runtime.connect({name: "index-background-connectio
 export default {
     name: 'App',
     components: {
+      Delete,
+      Edit,
         ElContainer,
         ElAside,
         ElHeader,
@@ -234,6 +251,9 @@ export default {
     },
     data() {
         return {
+            setting:{
+              editModel:false
+            },
             treeData: [{
                 id: 0,
                 tiltle: "书签"
@@ -361,7 +381,7 @@ export default {
             }else if(data.status == 2){
               over++;
             }
-            if(data.url && data.currentUrl && data.url != data.currentUrl){
+            if(data.domain && data.currentDomain && data.domain != data.currentDomain){
               change++;
             }
           }

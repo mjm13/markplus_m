@@ -64,6 +64,9 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
                 if (bookmark && bookmark.id) { // 如果是书签地址
                     console.log("打开书签异常", bookmark)
                     bookmark.currentUrl = url;
+                    try{
+                        bookmark.currentDomain = new URL(url).hostname;
+                    }catch (e) {}
                     bookmark.status = -1;
                     DBManager.saveBookmarks([bookmark]);
                 }
@@ -113,6 +116,9 @@ chrome.webNavigation.onCompleted.addListener((details) => {
                 if (bookmark && bookmark.id) { // 如果是书签地址
                     console.log("加载完成找到书签", bookmark)
                     bookmark.currentUrl =url;
+                    try{
+                        bookmark.currentDomain = new URL(url).hostname;
+                    }catch (e) {}
                     updateBookMark(bookmark, tabId);
                 }
                 if (datas.length > 1) {
