@@ -69,7 +69,14 @@
       </div>
       <div style="align-self: center;">
         <el-space >
-          <el-switch v-model="setting.editModel" />
+          <el-switch v-model="setting.editModel">
+            <template #active-action>
+              <span>E</span>
+            </template>
+            <template #inactive-action>
+              <span>R</span>
+            </template>
+          </el-switch>
 
           <el-button circle size="default" title="获取网页源数据" type="success" @click="crawlMeta">
             <el-icon size="18"><Promotion/></el-icon>
@@ -183,10 +190,10 @@
                       </el-col>
                       <el-col :span="3">
                         <template v-if="setting.editModel">
-                          <el-button  title="删除" type="danger" >
+                          <el-button style="padding: 3px;" title="删除" type="danger" @click="removeBookmark(data)">
                             <el-icon ><Delete /></el-icon>
                           </el-button>
-                          <el-button  title="编辑" type="primary" >
+                          <el-button style="padding: 3px;" title="编辑" type="primary" @click="editBookmark(data)">
                             <el-icon ><Edit /></el-icon>
                           </el-button>
                         </template>
@@ -211,6 +218,21 @@
             </el-main>
         </el-container>
     </el-container>
+
+  <el-dialog v-model="showBookmarkDailog" title="详情" width="500">
+    <el-form :model="bookmark" label-width="auto">
+      <el-form-item label="标题">
+        <el-input v-model="bookmark.title"/>
+      </el-form-item>
+      <el-form-item label="地址">
+        <el-input v-model="bookmark.url"/>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="saveBookmark">保存</el-button>
+        <el-button @click="closeBookmarkDialog">取消</el-button>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
 </template>
 
 <script>
@@ -223,12 +245,12 @@ import {
   ElInput,
   ElLink,
   ElMain,
+  ElMessage,
   ElTable,
   ElTableColumn,
   ElTree
 } from 'element-plus';
 import DBManager from "./common/dbManager.js";
-import {Delete, Edit} from "@element-plus/icons-vue";
 
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 
@@ -236,8 +258,6 @@ const backgroundConn = chrome.runtime.connect({name: "index-background-connectio
 export default {
     name: 'App',
     components: {
-      Delete,
-      Edit,
         ElContainer,
         ElAside,
         ElHeader,
@@ -248,6 +268,7 @@ export default {
         ElLink,
         ElInput,
         ElButton,
+      ElMessage
     },
     data() {
         return {
@@ -287,10 +308,39 @@ export default {
                     value: 'url',
                     label: '网址'
                 }],
-            }
+            },
+          showBookmarkDailog: false,
+          bookmark: {}
         };
     },
     methods: {
+      removeBookmark(data) {
+        const _this = this;
+        DBManager.deleteBookmarks([{...data}]).then(() => {
+          ElMessage({
+            message: '操作成功!',
+            type: 'success',
+          });
+          _this.reloadBookmarkPage();
+        })
+      },
+      saveBookmark() {
+        const _this = this;
+        DBManager.saveBookmarks([{..._this.bookmark}]).then(() => {
+          ElMessage({
+            message: '保存成功!',
+            type: 'success',
+          })
+          _this.showBookmarkDailog = false;
+        })
+      },
+      editBookmark(data) {
+        this.bookmark = data;
+        this.showBookmarkDailog = true;
+      },
+      closeBookmarkDialog() {
+        this.showBookmarkDailog = false;
+      },
         getFaviconUrl(siteUrl) {
             const url = new URL(chrome.runtime.getURL("/_favicon/"));
             url.searchParams.set("pageUrl", siteUrl);
@@ -335,18 +385,48 @@ export default {
           });
         },
         handleFileUpload(file){
+          const _this = this;
           const reader = new FileReader()
           reader.onload = (e) => {
             try {
               const bookmarks = JSON.parse(e.target.result);
-              DBManager.saveBookmarks(bookmarks)
+              DBManager.saveBookmarks(bookmarks).then(() => {
+                _this.reloadBookmarkPage();
+                ElMessage({
+                  message: '上传成功!',
+                  type: 'success',
+                })
+              })
             } catch (error) {
               console.error('Error parsing JSON: ', error);
-              ElMessage.error('解析书签失败')
+              ElMessage({
+                message: '解析书签失败!',
+                type: 'error',
+              })
             }
           }
           reader.readAsText(file.raw)
         },
+      reloadBookmarkPage() {
+        backgroundConn.postMessage({
+          action: Constant.QUERY_FOLDER,
+          prop: 'type',
+          operator: 'eq',
+          value: 'folder'
+        });
+        backgroundConn.postMessage({
+          action: Constant.QUERY_BOOKMARKS,
+          prop: 'parentId',
+          operator: 'eq',
+          value: '1'
+        });
+        backgroundConn.postMessage({
+          action: Constant.STATISTICS_TOTAL,
+          prop: 'id',
+          operator: 'gt',
+          value: '0'
+        });
+      },
         openUrl(data){
           window.open(data.url, '_blank');
         }
@@ -393,24 +473,7 @@ export default {
         }
       });
 
-      backgroundConn.postMessage({
-        action: Constant.QUERY_FOLDER,
-        prop: 'type',
-        operator: 'eq',
-        value: 'folder'
-      });
-      backgroundConn.postMessage({
-        action: Constant.QUERY_BOOKMARKS,
-        prop: 'parentId',
-        operator: 'eq',
-        value: '1'
-      });
-      backgroundConn.postMessage({
-        action: Constant.STATISTICS_TOTAL,
-        prop: 'id',
-        operator: 'gt',
-        value: '0'
-      });
+      _this.reloadBookmarkPage();
     }
 };
 </script>

@@ -109,17 +109,11 @@ const DBManager = {
         });
     },
     deleteBookmarks: function (bookmarks) {
+        let _this = this;
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
-                console.log("开始存储书签，总数：", bookmarks.length);
                 const transaction = this.db.transaction([this.storeName], "readwrite");
                 const objectStore = transaction.objectStore(this.storeName);
-                bookmarks.forEach(bookmark => {
-                    const request = objectStore.delete(bookmark);
-                    request.onerror = (event) => {
-                        console.error("删除异常", event.target.error);
-                    };
-                });
 
                 transaction.oncomplete = () => {
                     console.log(`删除完成!`);
@@ -131,6 +125,28 @@ const DBManager = {
                     reject(event);
                 };
             });
+
+                bookmarks.forEach(bookmark => {
+                    let request;
+                    if (bookmark.type === "bookmark") {
+                        request = objectStore.delete(bookmark.id);
+                        request.onerror = () => {
+                            console.log(request.error);
+                            reject(request.error);
+                        };
+                    } else {
+                        _this.queryBookmarks({
+                            prop: 'parentId',
+                            operator: 'eq',
+                            value: bookmark.id
+                        }).then((datas)=>{
+                            _this.deleteBookmarks(datas).then(()=>{
+                                objectStore.delete(bookmark.id);
+                            });
+                        });
+                    }
+
+                });
         });
     },
     queryBookmarks: function (queryDto) {
