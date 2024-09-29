@@ -148,9 +148,9 @@ const DBManager = {
     queryBookmarks: function (queryDto) {
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
-                if (!queryDto || !queryDto.value || !queryDto.prop || !queryDto.operator) {
-                    reject("查询参数错误");
-                }
+                // if (!queryDto || !queryDto.value || !queryDto.prop || !queryDto.operator) {
+                //     reject("查询参数错误");
+                // }
                 const {prop, operator, value, limit = -1} = queryDto;
                 // 根据不同的匹配规则进行查询
                 const transaction = this.db.transaction([this.storeName], "readonly");
