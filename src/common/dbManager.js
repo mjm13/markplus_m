@@ -136,10 +136,8 @@ const DBManager = {
                             operator: 'eq',
                             value: bookmark.id
                         }).then((datas)=>{
-                            debugger;
                             _this.deleteBookmarks(datas);
                         });
-                        debugger;
                         objectStore.delete(bookmark.id);
                     }
 

@@ -228,7 +228,7 @@
 
   <el-dialog v-model="showBookmarkDailog" title="详情" width="500">
     <el-form :model="bookmark" label-width="auto">
-      <el-form-item label="标题">
+      <el-form-item label="名称">
         <el-input v-model="bookmark.title"/>
       </el-form-item>
       <template v-if="bookmark.type === 'bookmark'">
@@ -256,7 +256,7 @@
                 @keyup.enter="handleInputConfirm"
             />
             <el-button v-else class="button-new-tag" size="small" @click="showInput">
-              + New Tag
+              +标签
             </el-button>
           </el-space>
         </el-form-item>
@@ -288,7 +288,7 @@ import {
 import DBManager from "./common/dbManager.js";
 import {nextTick, ref} from 'vue';
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
-
+const InputRef = ref(null);
 
 export default {
     name: 'App',
@@ -328,6 +328,9 @@ export default {
                   value: 'all',
                   label: '全部'
                 }, {
+                  value: 'tags',
+                  label: '标签'
+                }, {
                     value: 'title',
                     label: '标题'
                 }, {
@@ -347,19 +350,19 @@ export default {
           showBookmarkDailog: false,
           inputVisible: false,
           inputValue: '',
-          InputRef:ref(null),
           bookmark: {}
         };
     },
     methods: {
       handleClose(tag) {
-        this.bookmark.tags.value.splice(dynamicTags.value.indexOf(tag), 1)
+        this.bookmark.tags.splice(this.bookmark.tags.indexOf(tag), 1)
       },
       showInput() {
-        let _this = this;
         this.inputVisible = true;
         nextTick(() => {
-          _this.InputRef.value.focus();
+          if (this.$refs.InputRef) {
+            this.$refs.InputRef.input.focus(); // 调用 InputRef 并聚焦
+          }
         })
       },
       handleInputConfirm() {
@@ -384,7 +387,7 @@ export default {
       },
       saveBookmark() {
         const _this = this;
-        DBManager.saveBookmarks([{..._this.bookmark}]).then(() => {
+        DBManager.saveBookmarks([{..._this.bookmark,tags:[..._this.bookmark.tags]}]).then(() => {
           ElMessage({
             message: '保存成功!',
             type: 'success',
