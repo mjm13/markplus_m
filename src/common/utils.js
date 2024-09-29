@@ -31,6 +31,7 @@ const Util = {
             treeId: treeId,//目录id结构
             treeName: treeName,//目录结构
             domain: node.url ? new URL(node.url).hostname : null,
+            tags:[],
             domainTitle: "",
             metaTitle: "",
             metaKeywords: "", // 扩展后增加meta中对应属性

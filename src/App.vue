@@ -182,7 +182,7 @@
                               当前网址：{{ data.currentUrl }}<br/>
                               创建时间：{{ data.dateAddedTime }}
                             </template>
-                          <el-text class="bookmark-text" truncated @dblclick="openUrl(data)">
+                            <el-text class="bookmark-text" truncated @dblclick="openUrl(data)">
                             {{ data.title ? data.title : data.url }}
                           </el-text>
                           </el-tooltip>
@@ -190,9 +190,16 @@
                       </el-col>
                       <el-col :span="3">
                         <template v-if="setting.editModel">
-                          <el-button style="padding: 3px;" title="删除" type="danger" @click="removeBookmark(data)">
-                            <el-icon ><Delete /></el-icon>
-                          </el-button>
+                          <el-popconfirm title="是否确定删除?目录会删除所有数据!" width="300px"
+                                         @confirm="removeBookmark(data)">
+                            <template #reference>
+                              <el-button style="padding: 3px;" title="删除" type="danger">
+                                <el-icon>
+                                  <Delete/>
+                                </el-icon>
+                              </el-button>
+                            </template>
+                          </el-popconfirm>
                           <el-button style="padding: 3px;" title="编辑" type="primary" @click="editBookmark(data)">
                             <el-icon ><Edit /></el-icon>
                           </el-button>
@@ -224,9 +231,37 @@
       <el-form-item label="标题">
         <el-input v-model="bookmark.title"/>
       </el-form-item>
-      <el-form-item label="地址">
-        <el-input v-model="bookmark.url"/>
-      </el-form-item>
+      <template v-if="bookmark.type === 'bookmark'">
+        <el-form-item label="地址">
+          <el-input v-model="bookmark.url"/>
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-space :size="10">
+            <el-tag
+                v-for="tag in bookmark.tags"
+                :key="tag"
+                :disable-transitions="false"
+                closable
+                @close="handleClose(tag)"
+            >
+              {{ tag }}
+            </el-tag>
+            <el-input
+                v-if="inputVisible"
+                ref="InputRef"
+                v-model="inputValue"
+                class="w-10"
+                size="small"
+                @blur="handleInputConfirm"
+                @keyup.enter="handleInputConfirm"
+            />
+            <el-button v-else class="button-new-tag" size="small" @click="showInput">
+              + New Tag
+            </el-button>
+          </el-space>
+        </el-form-item>
+
+      </template>
       <el-form-item>
         <el-button type="primary" @click="saveBookmark">保存</el-button>
         <el-button @click="closeBookmarkDialog">取消</el-button>
@@ -251,7 +286,7 @@ import {
   ElTree
 } from 'element-plus';
 import DBManager from "./common/dbManager.js";
-
+import {nextTick, ref} from 'vue';
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 
 
@@ -273,7 +308,7 @@ export default {
     data() {
         return {
             setting:{
-              editModel:false
+              editModel: true
             },
             treeData: [{
                 id: 0,
@@ -310,10 +345,33 @@ export default {
                 }],
             },
           showBookmarkDailog: false,
+          inputVisible: false,
+          inputValue: '',
+          InputRef:ref(null),
           bookmark: {}
         };
     },
     methods: {
+      handleClose(tag) {
+        this.bookmark.tags.value.splice(dynamicTags.value.indexOf(tag), 1)
+      },
+      showInput() {
+        let _this = this;
+        this.inputVisible = true;
+        nextTick(() => {
+          _this.InputRef.value.focus();
+        })
+      },
+      handleInputConfirm() {
+        if(!Array.isArray(this.bookmark.tags)){
+          this.bookmark.tags = [];
+        }
+        if (this.inputValue) {
+          this.bookmark.tags.push(this.inputValue)
+        }
+        this.inputVisible = false
+        this.inputValue = ''
+      },
       removeBookmark(data) {
         const _this = this;
         DBManager.deleteBookmarks([{...data}]).then(() => {
@@ -335,7 +393,7 @@ export default {
         })
       },
       editBookmark(data) {
-        this.bookmark = data;
+        this.bookmark = {...data};
         this.showBookmarkDailog = true;
       },
       closeBookmarkDialog() {
@@ -500,12 +558,12 @@ export default {
   display: inline-block;
   color: initial; /* 初始颜色 */
   text-decoration: none; /* 无下划线 */
-  width: 100%;
+  width: 90%;
 }
 .bookmark-text:hover {
   color: #409EFF; /* 悬浮时的颜色 */
   text-decoration: underline; /* 悬浮时的下划线 */
-  width: 100%;
+  width: 90%;
 }
 
 .folder-icon {

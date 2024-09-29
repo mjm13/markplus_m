@@ -97,11 +97,9 @@ const DBManager = {
                 const transaction = this.db.transaction([this.storeName], "readonly");
                 const objectStore = transaction.objectStore(this.storeName);
                 const countRequest = objectStore.count();
-
                 countRequest.onsuccess = () => {
                     resolve(countRequest.result);
                 };
-
                 countRequest.onerror = () => {
                     reject(countRequest.error);
                 };
@@ -124,8 +122,6 @@ const DBManager = {
                     console.error("删除事务出错", event.target.error);
                     reject(event);
                 };
-            });
-
                 bookmarks.forEach(bookmark => {
                     let request;
                     if (bookmark.type === "bookmark") {
@@ -140,13 +136,15 @@ const DBManager = {
                             operator: 'eq',
                             value: bookmark.id
                         }).then((datas)=>{
-                            _this.deleteBookmarks(datas).then(()=>{
-                                objectStore.delete(bookmark.id);
-                            });
+                            debugger;
+                            _this.deleteBookmarks(datas);
                         });
+                        debugger;
+                        objectStore.delete(bookmark.id);
                     }
 
                 });
+            });
         });
     },
     queryBookmarks: function (queryDto) {
