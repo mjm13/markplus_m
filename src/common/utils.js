@@ -37,6 +37,7 @@ const Util = {
             metaKeywords: "", // 扩展后增加meta中对应属性
             metaDescription: "", // 扩展后增加meta中对应属性
             metaTags: "",//手动或自动解析关键词
+            syncChrome: true,
             type: node.children ? "folder" : "bookmark",
             childrenCount: node.children ? node.children.length : 0,
             status: 0, //0:未处理，1:爬取数据中,2:爬取完成，-1：无法访问，

@@ -107,7 +107,6 @@
             <el-scrollbar>
               <el-tree :data="treeData"
                        :expand-on-click-node="false"
-                       :show-checkbox="setting.editModel"
                        default-expand-all
                        draggable
                        node-key="id"
@@ -136,7 +135,6 @@
               <el-scrollbar style="border-radius: 4px;box-shadow: 0 2px 12px 0 #909399">
                 <el-tree :data="bookmarks"
                          :expand-on-click-node="false"
-                         :show-checkbox="setting.editModel"
                          default-expand-all
                          draggable
                          node-key="id">
@@ -193,14 +191,14 @@
                           <el-popconfirm title="是否确定删除?目录会删除所有数据!" width="300px"
                                          @confirm="removeBookmark(data)">
                             <template #reference>
-                              <el-button style="padding: 3px;" title="删除" type="danger">
+                              <el-button class="iconBtn" title="删除" type="danger">
                                 <el-icon>
                                   <Delete/>
                                 </el-icon>
                               </el-button>
                             </template>
                           </el-popconfirm>
-                          <el-button style="padding: 3px;" title="编辑" type="primary" @click="editBookmark(data)">
+                          <el-button class="iconBtn" title="编辑" type="primary" @click="editBookmark(data)">
                             <el-icon ><Edit /></el-icon>
                           </el-button>
                         </template>
@@ -231,6 +229,11 @@
       <el-form-item label="名称">
         <el-input v-model="bookmark.title"/>
       </el-form-item>
+      <template v-if="bookmark.type === 'folder'">
+        <el-form-item label="目录">
+          <el-input v-model="bookmark.treeName" disabled/>
+        </el-form-item>
+      </template>
       <template v-if="bookmark.type === 'bookmark'">
         <el-form-item label="地址">
           <el-input v-model="bookmark.url"/>
@@ -261,7 +264,28 @@
           </el-space>
         </el-form-item>
 
+        <el-form-item label="目录">
+          <el-input v-model="bookmark.treeName" disabled/>
+        </el-form-item>
+        <el-form-item label="当前地址">
+          <el-input v-model="bookmark.currentUrl" disabled/>
+        </el-form-item>
+        <el-form-item label="源标题">
+          <el-input v-model="bookmark.metaTitle" disabled/>
+        </el-form-item>
+        <el-form-item label="源关键字">
+          <el-input v-model="bookmark.metaKeywords" disabled/>
+        </el-form-item>
+        <el-form-item label="源标签">
+          <el-input v-model="bookmark.metaTags" disabled/>
+        </el-form-item>
+        <el-form-item label="源描述">
+          <el-input v-model="bookmark.metaDescription" autosize disabled type="textarea"/>
+        </el-form-item>
       </template>
+      <el-form-item label="添加时间">
+        <el-input v-model="bookmark.dateAddedTime" disabled/>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="saveBookmark">保存</el-button>
         <el-button @click="closeBookmarkDialog">取消</el-button>
@@ -287,6 +311,7 @@ import {
 } from 'element-plus';
 import DBManager from "./common/dbManager.js";
 import {nextTick, ref} from 'vue';
+
 const backgroundConn = chrome.runtime.connect({name: "index-background-connection"});
 const InputRef = ref(null);
 
@@ -350,7 +375,8 @@ export default {
           showBookmarkDailog: false,
           inputVisible: false,
           inputValue: '',
-          bookmark: {}
+          bookmark: {},
+          originalBookmark: {}
         };
     },
     methods: {
@@ -387,16 +413,26 @@ export default {
       },
       saveBookmark() {
         const _this = this;
+        if(!_this.bookmark.tags){
+          _this.bookmark.tags = [];
+        }
+        if(_this.bookmark.title != _this.originalBookmark.title
+            || _this.bookmark.url != _this.originalBookmark.url){
+          _this.bookmark.syncChrome = false;
+        }
         DBManager.saveBookmarks([{..._this.bookmark,tags:[..._this.bookmark.tags]}]).then(() => {
           ElMessage({
             message: '保存成功!',
             type: 'success',
           })
           _this.showBookmarkDailog = false;
+          _this.bookmark = {};
+          _this.originalBookmark = {};
         })
       },
       editBookmark(data) {
         this.bookmark = {...data};
+        this.originalBookmark = {...data}
         this.showBookmarkDailog = true;
       },
       closeBookmarkDialog() {
@@ -557,6 +593,10 @@ export default {
   font-size: 13px;
 }
 
+.iconBtn {
+  --el-button-size: 15px;
+  padding: 2px;
+}
 .dir-text, .bookmark-text {
   display: inline-block;
   color: initial; /* 初始颜色 */

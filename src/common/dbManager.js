@@ -67,6 +67,18 @@ const DBManager = {
                             bookmark.currentDomain = new URL(bookmark.currentUrl).hostname;
                         }
                     }catch (e) {}
+
+                    if(!bookmark.syncChrome){
+                        let modifyBookmark = {};
+                        if(bookmark.type === "folder"){
+                            modifyBookmark = {"title":bookmark.title};
+                        }else{
+                            modifyBookmark = {"title":bookmark.title,"url":bookmark.url};
+                        }
+                        chrome.bookmarks.update(bookmark.id,modifyBookmark);
+                        bookmark.syncChrome = true;
+                    }
+
                     const request = objectStore.put(bookmark);
                     request.onsuccess = () => {
                         count++;
