@@ -87,6 +87,10 @@
     "cub": "The directory contains undeleted bookmarks, please clear them before deletion!",
     "success": "Operation successful!",
     "modifyUserFirst": "Please configure AI-API parameters first!",
-    "select": "Please select!"
+    "select": "Please select!",
+    "bookmarkNotFound": "Bookmark not found",
+    "sameFolder": "Bookmark is already in this folder",
+    "moveSuccess": "Move successful",
+    "moveFailed": "Move failed"
   }
 }

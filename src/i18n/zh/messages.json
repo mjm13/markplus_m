@@ -87,6 +87,10 @@
     "cub": "目录下包含未删除书签，请清空后进行删除!",
     "success": "操作成功!",
     "modifyUserFirst": "请先配置AI-API相关参数!",
-    "select": "请选择!"
+    "select": "请选择!",
+    "bookmarkNotFound": "未找到书签",
+    "sameFolder": "书签已在该文件夹中",
+    "moveSuccess": "移动成功",
+    "moveFailed": "移动失败"
   }
 }
