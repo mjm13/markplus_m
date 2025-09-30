@@ -130,6 +130,7 @@ const Util = {
                         resolve(); // 如果键不存在，也完成 Promise
                     }
                 } catch (error) {
+                    console.error('处理节点拖拽失败:', error);
                     reject(error);
                 }
             });

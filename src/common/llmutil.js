@@ -42,7 +42,7 @@ const LLM_M = {
             await this.processQueue();
         }, this.scanInterval);
 
-        console.log("队列扫描器已启动");
+
     },
     processQueue: async function () {
         // 如果正在处理或队列为空，则跳过
@@ -58,27 +58,27 @@ const LLM_M = {
             try {
                 const batchToProcess = this.queue.splice(0, this.config.maxSummarizeTags);
                 await this.summarizeTagsBatch(batchToProcess);
-                console.log(`处理完成一批数据，剩余队列长度: ${this.queue.length}`);
+
             } catch (error) {
-                console.error('处理队列出错:', error);
+                console.error('处理失败:', error);
             } finally {
                 this.processing = false;
             }
         } else if (this.queue.length > 0) {
             // 队列长度不足 batchSize
             this.insufficientCount++;
-            // console.log(`队列长度不足 ${this.batchSize}，当前计数：${this.insufficientCount}`);
+
             // 如果连续N次扫描都不足，处理所有剩余数据
             if (this.insufficientCount >= 20) {
                 this.processing = true;
                 try {
                     let length = this.queue.length > this.config.maxSummarizeTags ? this.config.maxSummarizeTags : this.queue.length;
                     const remainingBookmarks = this.queue.splice(0, length);
-                    console.log(`处理剩余 ${remainingBookmarks.length} 条数据`);
+
                     await this.summarizeTagsBatch(remainingBookmarks);
                     this.insufficientCount = 0;  // 重置计数
                 } catch (error) {
-                    console.error('处理剩余数据出错:', error);
+                    console.error('处理失败:', error);
                 } finally {
                     this.processing = false;
                 }
@@ -104,8 +104,8 @@ const LLM_M = {
                     parser: LLM.parsers.json
                 });
             result = JSON.stringify(result, null, 2);
-            console.log("发送数据:", input);
-            console.log("总结数据:", result);
+
+
             return result
         } catch (error) {
             return error.toString();
@@ -118,10 +118,10 @@ const LLM_M = {
             // const chatSession = this.model.startChat({
             //     history: [],
             // });
-            console.log("发送数据:", input);
+
             // result = await chatSession.sendMessage(JSON.stringify(input));
             // resultText = result?.response?.candidates[0]?.content?.parts?.[0]?.text;
-            // console.log("总结数据:", resultText);
+
 
             this.model = new LLM();
             this.model.system(this.config.promt);
@@ -132,7 +132,7 @@ const LLM_M = {
                     apikey:this.config.providerkey,
                     parser: LLM.parsers.json
                 });
-            console.log("总结数据:", result);
+
             if (result) {
                 if (!Array.isArray(result)) {
                     datas.push(result);
@@ -150,15 +150,15 @@ const LLM_M = {
                     } else if (data.tags) {
                         data.status = 9;
                     } else {
-                        console.log("未获取到总结", data)
+
                     }
                 }
                 BookmarkManager.saveBookmarks(input);
             } else {
-                console.log("未获取到总结", input)
+
             }
         } catch (error) {
-            console.warn("总结异常:", error, "result:", result, "resultText:", resultText, "datas:", datas, "temp:", temp);
+            console.error('处理失败:', error);
         }
     }
 }

@@ -100,7 +100,7 @@ const UserSetting={
     getPageConfig: async function(){
         return await chrome.storage.local.get([Constant.ENV.SYS_PAGE_CONFIG]).then((result) => {
             let data = result[Constant.ENV.SYS_PAGE_CONFIG];
-            console.log("---------",data);
+
             if(data==null){
                 data = false;
                 this.setPageConfig(false);

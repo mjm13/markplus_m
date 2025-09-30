@@ -9,7 +9,7 @@ const BookmarkManager = {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.dbVersion);
             request.onerror = event => {
-                console.error("数据库打开出错", event);
+
                 reject("数据库打开出错");
             };
             request.onsuccess = event => {
@@ -17,10 +17,10 @@ const BookmarkManager = {
                 resolve(this.db);
             };
             request.onupgradeneeded = event => {
-                console.log("数据库升级中");
+
                 this.db = event.target.result;
                 if (!this.db.objectStoreNames.contains(this.storeName)) {
-                    // console.log(`创建对象存储 ${this.storeName}`);
+
                     const objectStore = this.db.createObjectStore(this.storeName, {keyPath: "id"});
                 }
             };
@@ -78,7 +78,7 @@ const BookmarkManager = {
             });
             return parent;
         } catch (error) {
-            console.error("获取父节点失败", error);
+
             return null; // 或者返回适当的错误处理
         }
     },
@@ -88,7 +88,7 @@ const BookmarkManager = {
             return new Promise(async (resolve, reject) => {
                 const transaction = this.db.transaction([this.storeName], "readwrite");
                 const objectStore = transaction.objectStore(this.storeName);
-                console.log("同步chrome添加书签展开前",bookmark)
+
                 const bookmarkDb = {
                     id: bookmark.id,
                     parentId: bookmark.parentId,
@@ -106,19 +106,19 @@ const BookmarkManager = {
                     dateAddedTime: new Date(bookmark.dateAdded).toLocaleString(),
                     dateGroupModifiedTime: new Date(bookmark.dateAdded).toLocaleString()
                 };
-                console.log("同步chrome添加书签",bookmarkDb)
+
                 let parent =await _this.getParentSync(objectStore,bookmark.parentId);
                 bookmarkDb.treeId = parent.treeId+"/"+parent.id;
                 bookmarkDb.treeName = parent.treeName+"/"+parent.title;
                 objectStore.put(bookmarkDb)
 
                 transaction.oncomplete = () => {
-                    console.log("保存chrome书签完成")
+
                     resolve(bookmarkDb);
                 };
 
                 transaction.onerror = event => {
-                    console.error("保存chrome书签错误", event.target.error);
+
                     reject(event);
                 };
             });
@@ -161,7 +161,7 @@ const BookmarkManager = {
         const datas = Array.from(resultMap.values()).flatMap(list => list);
         // for (let data of datas) {
         //     if(data.status > 0 && data.type == 'bookmark'){
-        //         console.log(data.id+"+"+data.title);
+
         //     }
         // }
         this.saveBookmarks(datas);
@@ -169,13 +169,13 @@ const BookmarkManager = {
     saveBookmarks: async function (bookmarks) {
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
-                // console.log("开始存储书签，总数：", bookmarks.length);
+
                 const transaction = this.db.transaction([this.storeName], "readwrite");
                 const objectStore = transaction.objectStore(this.storeName);
 
                 let count = 0;
                 bookmarks.forEach(bookmark => {
-                    // console.log("开始保存书签");
+
                     try{
                         if(bookmark.currentUrl && !bookmark.currentDomain){
                             bookmark.currentDomain = new URL(bookmark.currentUrl).hostname;
@@ -205,21 +205,21 @@ const BookmarkManager = {
                     // request.onsuccess = () => {
                     //     count++;
                     //     if (count % 100 === 0) {
-                    //         console.log(`已存储 ${count} 个书签`);
+
                     //     }
                     // };
                     request.onerror = (event) => {
-                        console.error("存储书签时出错", event.target.error);
+
                     };
                 });
 
                 transaction.oncomplete = () => {
-                    // console.log(`所有书签已成功存储，总数：${count}`);
+
                     resolve();
                 };
 
                 transaction.onerror = event => {
-                    console.error("事务出错", event.target.error);
+
                     reject(event);
                 };
             });
@@ -364,7 +364,7 @@ const BookmarkManager = {
             };
 
         } catch (error) {
-            console.error('书签删除过程中发生错误:', error);
+
             throw error;
         }
     },
@@ -434,10 +434,10 @@ const BookmarkManager = {
                         }
                         cursor.continue();
                     } else {
-                        console.log(`搜索完成，找到 ${results.length} 个结果-查询条件`,queryDto);
+
                         let datas = [...new Set(results)];
                         if(prop == 'status' && value == -3){
-                            console.log("重复书签排序")
+
                             datas = datas.toSorted((a, b) => {
                                 let aurl = a.url?a.url.replace(/(http|https):\/\//g, ''):"";
                                 let burl =  b.url?b.url.replace(/(http|https):\/\//g, ''):"";
@@ -451,7 +451,7 @@ const BookmarkManager = {
                 };
 
                 request.onerror = event => {
-                    console.error("搜索书签时发生错误", event);
+
                     reject(event);
                 };
             });

@@ -159,12 +159,6 @@
             </el-icon>
           </el-button>
 
-          <el-button v-if="setting.debug" circle size="default" title="调试拖拽功能" @click="debugDragSetup">
-            <el-icon size="18">
-              <Tools/>
-            </el-icon>
-          </el-button>
-
           <el-popconfirm :title="t('confirm.deleteAll')"  width="200px"
                          @confirm="removeAllCheck">
             <template #reference>
@@ -910,7 +904,7 @@ export default {
           // nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           nodeEl.scrollIntoView();
         } else {
-          console.warn(`未找到ID为 ${data.parentId} 的节点`);
+
         }
       });
       return;
@@ -931,13 +925,13 @@ export default {
       // 我们改用其他方式
     },
     setupDragForBookmark(element, data) {
-      console.log('setupDragForBookmark called:', { element, data: data?.id, editModel: this.setting.editModel });
+
       if (!element || !this.setting.editModel || data.type !== 'bookmark') {
-        console.log('setupDragForBookmark skipped:', { hasElement: !!element, editModel: this.setting.editModel, type: data?.type });
+
         return;
       }
       
-      console.log('Setting up drag for bookmark:', data.id, data.title);
+
       
       // 设置拖拽属性
       element.draggable = true;
@@ -957,19 +951,19 @@ export default {
       
       // 创建事件处理器，使用箭头函数保持 this 上下文
       element._dragStartHandler = (event) => {
-        console.log('Drag start triggered for:', data.id);
+
         event.stopPropagation(); // 防止事件冒泡
         this.handleDragStart(event, data);
       };
       
       element._dragEndHandler = (event) => {
-        console.log('Drag end triggered for:', data.id);
+
         this.handleDragEnd(event);
       };
       
       // 添加鼠标按下事件来确保拖拽能够开始
       element._mouseDownHandler = (event) => {
-        console.log('Mouse down on draggable element:', data.id);
+
         // 确保元素可以被拖拽
         element.draggable = true;
       };
@@ -988,23 +982,17 @@ export default {
         event.preventDefault();
       }, { passive: false });
       
-      console.log('Drag setup completed for:', data.id);
+
     },
     handleMouseOver(data) {
       // 鼠标悬浮时，记录当前节点的 ID
       this.hoveredNode = data.id;
     },
     handleDragStart(event, data) {
-      console.log('handleDragStart called:', { 
-        editModel: this.setting.editModel, 
-        dataId: data?.id, 
-        type: data?.type,
-        eventType: event.type,
-        target: event.target
-      });
+
       
       if (!this.setting.editModel || data.type !== 'bookmark') {
-        console.log('Drag start prevented:', { editModel: this.setting.editModel, type: data?.type });
+
         event.preventDefault();
         return false;
       }
@@ -1012,7 +1000,7 @@ export default {
       // 防止文本选中
       document.body.classList.add('dragging-active');
       
-      console.log('Starting drag for bookmark:', data.id, data.title);
+
       
       this.isDragging = true;
       this.draggedBookmark = data;
@@ -1026,25 +1014,25 @@ export default {
         parentId: data.parentId
       };
       
-      console.log('Setting drag data:', dragData);
+
       
       try {
         event.dataTransfer.setData('text/plain', JSON.stringify(dragData));
         event.dataTransfer.effectAllowed = 'move';
-        console.log('Drag data set successfully');
+
       } catch (error) {
-        console.error('Failed to set drag data:', error);
+        console.error('设置拖拽图像失败:', error);
       }
       
       // 添加拖拽样式
       const bookmarkRow = event.target.closest('.el-row') || event.currentTarget;
       if (bookmarkRow) {
-        console.log('Adding drag styles to row');
+
         bookmarkRow.classList.add('dragging');
         bookmarkRow.style.opacity = '0.5';
         bookmarkRow.style.transform = 'rotate(2deg)';
       } else {
-        console.log('Could not find bookmark row element');
+
       }
       
       // 创建拖拽图像（可选）
@@ -1062,7 +1050,7 @@ export default {
       try {
         event.dataTransfer.setDragImage(dragImage, 0, 0);
       } catch (error) {
-        console.log('Could not set drag image:', error);
+        console.error('解析拖拽数据失败:', error);
       }
       
       setTimeout(() => {
@@ -1071,11 +1059,11 @@ export default {
         }
       }, 0);
       
-      console.log('Drag start completed successfully');
+
       return true;
     },
     handleDragEnd(event) {
-      console.log('handleDragEnd called, resetting all drag states');
+
       
       // 重置所有拖拽状态
       this.isDragging = false;
@@ -1102,10 +1090,10 @@ export default {
         folder.classList.remove('drag-over');
       });
       
-      console.log('Drag end cleanup completed');
+
     },
     resetDragState() {
-      console.log('Resetting drag state manually');
+
       
       // 重置所有拖拽状态
       this.isDragging = false;
@@ -1132,7 +1120,7 @@ export default {
         folder.classList.remove('drag-over');
       });
       
-      console.log('Manual drag state reset completed');
+
     },
     handleFolderDragOver(event) {
       if (this.isDragging && this.draggedBookmark) {
@@ -1145,7 +1133,7 @@ export default {
         const folderId = wrapper.getAttribute('data-folder-id');
         if (folderId && this.dragOverFolder !== folderId) {
           this.dragOverFolder = folderId;
-          console.log('Drag over folder:', folderId);
+
         }
       }
     },
@@ -1153,47 +1141,47 @@ export default {
       // 延迟清除，避免在子元素间移动时闪烁
       setTimeout(() => {
         if (!event.relatedTarget || !event.currentTarget || !event.currentTarget.contains(event.relatedTarget)) {
-          console.log('Drag leave folder');
+
           this.dragOverFolder = null;
         }
       }, 100);
     },
     handleFolderDrop(event, folderData) {
-      console.log('handleFolderDrop called:', { folderData: folderData?.id, isDragging: this.isDragging });
+
       
       event.preventDefault();
       this.dragOverFolder = null;
       
       if (!this.isDragging || !this.draggedBookmark) {
-        console.log('Drop ignored - not dragging or no dragged bookmark');
+
         return;
       }
       
       // 检查是否拖拽到同一个父文件夹
       if (this.draggedBookmark.parentId === folderData.id) {
-        console.log('Drop ignored - same parent folder');
+
         this.$message.info(this.t('tips.sameFolder'));
         return;
       }
       
       const dragData = event.dataTransfer?.getData('text/plain');
-      console.log('Drag data received:', dragData);
+
       
       if (!dragData) {
-        console.log('No drag data found');
+
         return;
       }
       
       try {
         const bookmarkData = JSON.parse(dragData);
-        console.log('Parsed bookmark data:', bookmarkData);
-        console.log('Target folder data:', folderData);
+
+
         
         if (bookmarkData.type === 'bookmark' && folderData.type === 'folder') {
-          console.log('Moving bookmark to folder');
+
           this.moveBookmarkToFolder(bookmarkData, folderData);
         } else {
-          console.log('Invalid drop - bookmark type:', bookmarkData.type, 'folder type:', folderData.type);
+
         }
       } catch (error) {
         console.error('解析拖拽数据失败:', error);
@@ -1214,7 +1202,7 @@ export default {
           this.moveBookmarkToFolder(bookmarkData, dropNode.data);
         }
       } catch (error) {
-        console.error('解析拖拽数据失败:', error);
+        console.error('处理节点拖拽失败:', error);
       }
     },
     moveBookmarkToFolder(bookmarkData, targetFolder) {
@@ -1266,10 +1254,10 @@ export default {
       });
     },
     setupAllBookmarksDrag() {
-      console.log('setupAllBookmarksDrag called, editModel:', this.setting.editModel);
+
       
       if (!this.setting.editModel) {
-        console.log('Not in edit mode, skipping drag setup');
+
         return;
       }
       
@@ -1277,7 +1265,7 @@ export default {
       const setupDragWithObserver = () => {
         const treeContainer = document.querySelector('#bookmarkList');
         if (!treeContainer) {
-          console.log('Tree container not found, retrying...');
+
           setTimeout(setupDragWithObserver, 100);
           return;
         }
@@ -1307,7 +1295,7 @@ export default {
           });
           
           if (hasNewBookmarkRows) {
-            console.log('New bookmark rows detected, setting up drag');
+
             setTimeout(() => this.setupVisibleBookmarksDrag(), 50);
           }
         });
@@ -1317,7 +1305,7 @@ export default {
           subtree: true
         });
         
-        console.log('Drag observer setup completed');
+
       };
       
       // 延迟执行以确保虚拟滚动组件已渲染
@@ -1329,17 +1317,17 @@ export default {
         return;
       }
       
-      console.log('Setting up drag for visible bookmarks');
+
       
       const treeContainer = document.querySelector('#bookmarkList');
       if (!treeContainer) {
-        console.log('Tree container not found');
+
         return;
       }
       
       // 查找所有可见的书签行元素
       const bookmarkRows = treeContainer.querySelectorAll('[data-bookmark-type="bookmark"]');
-      console.log('Found visible bookmark rows:', bookmarkRows.length);
+
       
       bookmarkRows.forEach((row) => {
         // 检查是否已经设置过拖拽
@@ -1351,7 +1339,7 @@ export default {
         const bookmark = this.bookmarks.find(b => b.id === bookmarkId);
         
         if (bookmark && bookmark.type === 'bookmark') {
-          console.log(`Setting up drag for bookmark:`, bookmark.id, bookmark.title);
+
           this.setupDragForBookmark(row, bookmark);
           row.setAttribute('data-drag-setup', 'true');
         }
@@ -1361,7 +1349,7 @@ export default {
       let _this = this;
       backgroundConn = chrome.runtime.connect({ name: "index-background-connection" });
       backgroundConn.onDisconnect.addListener(() => {
-        console.log("联接失效")
+
         _this.initConnect();
       });
       backgroundConn.onMessage.addListener(async function (result) {
@@ -1393,14 +1381,14 @@ export default {
                 _this.$refs.bookmarkList.setCheckedKeys(selectIds);
               }
               // 重新设置拖拽功能
-              console.log('Setting up drag after bookmark data update (edit mode)');
+
               _this.setupAllBookmarksDrag();
             }, 300)
 
           } else {
             // 即使不在编辑模式，也需要等待DOM更新后再设置拖拽
             setTimeout(() => {
-              console.log('Setting up drag after bookmark data update (non-edit mode)');
+
               _this.setupAllBookmarksDrag();
             }, 300);
           }
@@ -1468,7 +1456,7 @@ export default {
               case 404: stat["404"]++;break;
               case 0:
                 if(data.url && data.url.startsWith('http')){
-                  // console.log(data);
+
                   stat.pending++;
                 }
                 break;
@@ -1689,7 +1677,7 @@ export default {
             setTimeout(() => _this.reloadBookmarkPage(), 1000);
           })
         } catch (error) {
-          console.error('Error parsing JSON: ', error);
+          console.error('解析书签文件失败:', error);
           ElMessage({
             message: '解析书签失败!',
             type: 'error',
@@ -1699,7 +1687,7 @@ export default {
       reader.readAsText(file.raw)
     },
     handleEditModelChange(value){
-      console.log('Edit model changed to:', value);
+
       Util.setLocalStorageItem(Constant.ENV.SYS_PAGE_CONFIG,value);
       
       // 清理之前的观察器
@@ -1720,11 +1708,11 @@ export default {
       // 当编辑模式改变时，重新设置拖拽功能
       if (value) {
         setTimeout(() => {
-          console.log('Setting up drag after edit mode change to true');
+
           this.setupAllBookmarksDrag();
         }, 200);
       } else {
-        console.log('Edit mode disabled, drag functionality removed');
+
       }
     },
     reloadBookmarkPage() {
@@ -1756,35 +1744,6 @@ export default {
         operator: 'gt',
         value: '0'
       });
-    },
-    
-    // 调试方法：检查拖拽设置状态
-    debugDragSetup() {
-      console.log('=== Drag Setup Debug Info ===');
-      console.log('Edit Model:', this.setting.editModel);
-      console.log('Is Dragging:', this.isDragging);
-      console.log('Dragged Bookmark:', this.draggedBookmark);
-      console.log('Drag Observer:', !!this.dragObserver);
-      
-      const treeContainer = document.querySelector('#bookmarkList');
-      console.log('Tree Container Found:', !!treeContainer);
-      
-      if (treeContainer) {
-        const bookmarkRows = treeContainer.querySelectorAll('[data-bookmark-type="bookmark"]');
-        const draggableRows = treeContainer.querySelectorAll('[data-drag-setup="true"]');
-        console.log('Total Bookmark Rows:', bookmarkRows.length);
-        console.log('Draggable Rows:', draggableRows.length);
-        
-        bookmarkRows.forEach((row, index) => {
-          const bookmarkId = row.getAttribute('data-bookmark-id');
-          const isDraggable = row.draggable;
-          const hasDragSetup = row.hasAttribute('data-drag-setup');
-          console.log(`Row ${index}: ID=${bookmarkId}, Draggable=${isDraggable}, Setup=${hasDragSetup}`);
-        });
-      }
-      
-      console.log('Total Bookmarks in Data:', this.bookmarks.length);
-      console.log('=== End Debug Info ===');
     },
     showBookmarkStatus() {
       const _this = this;
@@ -1906,17 +1865,17 @@ export default {
     }
   },
   mounted() {
-    console.log('App component mounted');
+
 
     const _this = this;
     _this.initConnect();
     Setting.getSysConfig().then(config => {
       _this.userSetting = config;
-      console.log("读取配置完成")
+
     });
     Util.getLocalStorageItem(Constant.ENV.SYS_PAGE_CONFIG).then(config => {
       _this.setting.editModel = config;
-      console.log('Edit model loaded:', config);
+
     })
     Util.getLocalStorageItem(Constant.ENV.SYS_CRAWL_STATUS).then(config => {
       if (config == undefined) {
@@ -1929,13 +1888,13 @@ export default {
     
     // 延迟设置拖拽功能，确保所有数据都已加载
     setTimeout(() => {
-      console.log('Initial drag setup after mount');
+
       _this.setupAllBookmarksDrag();
     }, 1000);
     
     // 添加全局拖拽状态重置监听器
     _this.globalDragEndHandler = () => {
-      console.log('Global dragend detected, ensuring cleanup');
+
       _this.resetDragState();
     };
     document.addEventListener('dragend', _this.globalDragEndHandler);
@@ -1943,7 +1902,7 @@ export default {
     // 添加ESC键监听器来取消拖拽
     _this.globalKeyHandler = (event) => {
       if (event.key === 'Escape' && _this.isDragging) {
-        console.log('ESC pressed, canceling drag');
+
         _this.resetDragState();
       }
     };
@@ -1968,7 +1927,7 @@ export default {
     // 清理所有拖拽相关的引用
     this.bookmarkRefs.clear();
     
-    console.log('Component cleanup completed');
+
   }
 };
 </script>
@@ -2502,7 +2461,7 @@ export default {
 
 /* 精简的拖拽提示 */
 .folder-drop-zone-wrapper.drag-over .bookmark-node::after {
-  content: "📁";
+  /* content: "📁"; */
   position: absolute;
   right: 8px;
   top: 50%;

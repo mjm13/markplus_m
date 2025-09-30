@@ -14,7 +14,7 @@ chrome.runtime.onInstalled.addListener(() => {
         if (dbCount != bookmarks.length) {
             BookmarkManager.saveBookmarks(bookmarks)
                 .catch(error => {
-                    console.error("初始化或验证书签时出错:", error);
+
                 });
         }
     });
@@ -22,7 +22,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 
 chrome.bookmarks.onCreated.addListener( function(id, bookmark) {
-    console.log("onCreated",id,bookmark);
+
     if (bookmark.url === undefined) {
         BookmarkManager.addChromeBookmark(bookmark);
     }else {
@@ -42,7 +42,7 @@ chrome.bookmarks.onRemoved.addListener(function(id, removeInfo) {
 });
 
 chrome.bookmarks.onChanged.addListener(function(id, changeInfo) {
-    console.log("onChanged",id,changeInfo);
+
     BookmarkManager.getById(id).then(bookmark => {
         bookmark.url = changeInfo.url;
         bookmark.title = changeInfo.title;
@@ -52,11 +52,11 @@ chrome.bookmarks.onChanged.addListener(function(id, changeInfo) {
 });
 
 chrome.bookmarks.onMoved.addListener(function(id, moveInfo) {
-    console.log("onMoved", id, moveInfo);
+
     BookmarkManager.getById(id).then(bookmark => {
         bookmark.index = moveInfo.index;
         bookmark.parentId = moveInfo.parentId;
-        console.log("moveInfo",moveInfo,bookmark);
+
         BookmarkManager.addChromeBookmark(bookmark);
     })
 });
@@ -109,12 +109,12 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
         if (items[tabKey] && items[tabKey] != url) {
             searchUrl = items[tabKey];
         }
-        console.log("打开标签异常-删除前!",tabKey)
+
         BookmarkManager.getByUrl(searchUrl).then(datas => {
             if (Array.isArray(datas) && datas.length > 0) {
                 for (let bookmark of datas) {
                     if (bookmark && bookmark.id) { // 如果是书签地址
-                        console.log("打开书签异常", bookmark,details.error)
+
                         bookmark.currentUrl = url;
                         try {
                             bookmark.currentDomain = new URL(url).hostname;
@@ -128,7 +128,7 @@ chrome.webNavigation.onErrorOccurred.addListener((details) => {
 
         });
     },(items) => {
-        console.log("打开标签异常-关闭tab!",tabKey)
+
         Util.removeLocalKey(removeTabKey, (items) => {
             chrome.tabs.remove(details.tabId);
         });
@@ -150,19 +150,19 @@ chrome.webNavigation.onCompleted.addListener((details) => {
 
     const tabKey = Util.getTabKey(details.tabId);
     const removeTabKey = Util.getRemoveTabKey(details.tabId);
-    console.log(tabId,url);
+
     Util.removeLocalKey(tabKey, async (items) => {
-        // console.log("加载完成-删除前!", tabKey)
+
         let searchUrl = url;
         if (items[tabKey] && items[tabKey] != url) {
             searchUrl = items[tabKey];
         }
-        console.log("url",url,searchUrl,searchUrl);
+
         await BookmarkManager.getByUrl(searchUrl).then(async datas => {
             if (Array.isArray(datas) && datas.length > 0) {
                 const bookmark = datas[0];
                 if (bookmark && bookmark.id) { // 如果是书签地址
-                    // console.log("加载完成找到书签", bookmark)
+
                     bookmark.currentUrl = url;
                     bookmark.currentDomain = null;
                     try {
@@ -184,11 +184,11 @@ chrome.webNavigation.onCompleted.addListener((details) => {
                     }
                 }
             } else {
-                console.log("未找到书签:", searchUrl, tabKey)
+
             }
         });
     },(items) => {
-        // console.log("加载完成-删除tab!",tabKey)
+
         Util.removeLocalKey(removeTabKey, (items) => {
             chrome.tabs.remove(details.tabId);
         });
@@ -219,7 +219,7 @@ chrome.runtime.onConnect.addListener(function (port) {
                                 _this.port.postMessage({action: Constant.PAGE_EVENT.RELOAD_PAGE})
                             })
                             .catch(error => {
-                                console.error("初始化或验证书签时出错:", error);
+
                             });
                     }
                 });
@@ -247,10 +247,10 @@ chrome.runtime.onConnect.addListener(function (port) {
                     }else{
                         await chrome.tabs.create({url: data.url, active: false}, function (tab) {
                             if(tab){
-                                console.log("创建tab",tab.id,data.url);
+
                                 chrome.storage.local.set({[Util.getRemoveTabKey(tab.id)]: tab.id});
                                 // const tabKey = Util.getTabKey(details.tabId);
-                                // console.log("打开地址:", details.tabId,url)
+
                                 chrome.storage.local.set({[Util.getTabKey(tab.id)]: data.url});
                             }
                         });
@@ -294,12 +294,12 @@ async function updateBookMark(datas, tabId) {
                     }
                 });
                 const result = {metaKeywords, metaTitle, metaDescription, metaTags};
-                // console.log("result:", result)
+
                 return result;
             }
         }, async (results) => {
             if (chrome.runtime.lastError) {
-                console.warn("执行脚本时出错:", chrome.runtime.lastError);
+
             } else {
                 let status = 2;
                 let data = results[0].result;
@@ -312,7 +312,7 @@ async function updateBookMark(datas, tabId) {
                     data?.metaTitle.includes('页面不存在')){
                     status = 404;
                 }
-                // console.log("获取的元数据:", results);
+
                 for (let i = 0; i < datas.length; i++) {
                     datas[i].metaKeywords = data.metaKeywords;
                     datas[i].metaTitle = data.metaTitle;
