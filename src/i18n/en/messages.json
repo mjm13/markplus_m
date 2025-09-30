@@ -91,6 +91,11 @@
     "bookmarkNotFound": "Bookmark not found",
     "sameFolder": "Bookmark is already in this folder",
     "moveSuccess": "Move successful",
-    "moveFailed": "Move failed"
+    "moveFailed": "Move failed",
+    "samePosition": "Already in the same position",
+    "reorderSuccess": "Reorder successful",
+    "reorderFailed": "Reorder failed",
+    "sameType": "Can only reorder between same types",
+    "cannotMoveToChild": "Cannot move folder to its subfolder"
   }
 }

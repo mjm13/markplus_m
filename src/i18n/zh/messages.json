@@ -91,6 +91,11 @@
     "bookmarkNotFound": "未找到书签",
     "sameFolder": "书签已在该文件夹中",
     "moveSuccess": "移动成功",
-    "moveFailed": "移动失败"
+    "moveFailed": "移动失败",
+    "samePosition": "已在相同位置",
+    "reorderSuccess": "调整顺序成功",
+    "reorderFailed": "调整顺序失败",
+    "sameType": "只能在相同类型间调整顺序",
+    "cannotMoveToChild": "不能将文件夹移动到其子文件夹中"
   }
 }

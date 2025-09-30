@@ -273,10 +273,9 @@
                   <div 
                     class="bookmark-row-compact"
                     @mouseover="handleMouseOver(data)"
-                    @mounted="setupRowDrag($event, data)"
                     :class="{ 
                       'dragging': isDragging && draggedBookmark?.id === data.id,
-                      'bookmark-draggable': setting.editModel && data.type === 'bookmark'
+                      'bookmark-draggable': setting.editModel && lastQueryParam && lastQueryParam.prop === 'parentId' && !searchQuery.value && (data.type === 'bookmark' || data.type === 'folder')
                     }"
                     :data-bookmark-id="data.id"
                     :data-bookmark-type="data.type"
@@ -882,6 +881,7 @@ export default {
       hoveredNode: null,
       isDragging: false,
       draggedBookmark: null,
+      isReordering: false,
       dragOverFolder: null,
       bookmarkRefs: new Map(),
       dragObserver: null
@@ -920,13 +920,26 @@ export default {
       });
 
     },
-    setupRowDrag(event, data) {
-      // 这个方法在 el-row 挂载时不会被调用，因为 @mounted 不是有效事件
-      // 我们改用其他方式
-    },
+
     setupDragForBookmark(element, data) {
 
-      if (!element || !this.setting.editModel || data.type !== 'bookmark') {
+      if (!element || !this.setting.editModel) {
+
+        return;
+      }
+      
+      // 支持书签和文件夹的拖拽
+      if (data.type !== 'bookmark' && data.type !== 'folder') {
+
+        return;
+      }
+      
+      // 只有在查看特定文件夹时才允许拖拽调整顺序
+      const isInSpecificFolder = this.lastQueryParam && 
+                                this.lastQueryParam.prop === 'parentId' && 
+                                !this.searchQuery.value;
+      
+      if (!isInSpecificFolder) {
 
         return;
       }
@@ -947,6 +960,21 @@ export default {
         element.removeEventListener('dragend', element._dragEndHandler);
         element.removeEventListener('dragcancel', element._dragEndHandler);
         element.removeEventListener('dragexit', element._dragEndHandler);
+      }
+      if (element._dragOverHandler) {
+        element.removeEventListener('dragover', element._dragOverHandler);
+      }
+      if (element._dragEnterHandler) {
+        element.removeEventListener('dragenter', element._dragEnterHandler);
+      }
+      if (element._dragLeaveHandler) {
+        element.removeEventListener('dragleave', element._dragLeaveHandler);
+      }
+      if (element._dropHandler) {
+        element.removeEventListener('drop', element._dropHandler);
+      }
+      if (element._mouseDownHandler) {
+        element.removeEventListener('mousedown', element._mouseDownHandler);
       }
       
       // 创建事件处理器，使用箭头函数保持 this 上下文
@@ -977,12 +1005,296 @@ export default {
       element.addEventListener('dragcancel', element._dragEndHandler, { passive: false });
       element.addEventListener('dragexit', element._dragEndHandler, { passive: false });
       
-      // 添加拖拽悬停效果
-      element.addEventListener('dragover', (event) => {
+      // 添加拖拽悬停效果（支持书签和文件夹）
+      element._dragOverHandler = (event) => {
+        if (this.isDragging && this.draggedBookmark && this.draggedBookmark.id !== data.id) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.dataTransfer.dropEffect = 'move';
+          
+          // 添加悬停样式
+          element.classList.add('bookmark-drag-over');
+        }
+      };
+      
+      element._dragEnterHandler = (event) => {
+        if (this.isDragging && this.draggedBookmark && this.draggedBookmark.id !== data.id) {
+          event.preventDefault();
+          element.classList.add('bookmark-drag-over');
+        }
+      };
+      
+      element._dragLeaveHandler = (event) => {
+        // 检查是否真的离开了元素
+        if (!element.contains(event.relatedTarget)) {
+          element.classList.remove('bookmark-drag-over');
+        }
+      };
+      
+      element._dropHandler = (event) => {
         event.preventDefault();
-      }, { passive: false });
+        element.classList.remove('bookmark-drag-over');
+        
+        if (this.isDragging && this.draggedBookmark && this.draggedBookmark.id !== data.id) {
+          // 在同一父级内，根据组合列表（目录+书签）调整顺序
+          this.handleBookmarkDrop(event, data);
+        }
+      };
+      
+      element.addEventListener('dragover', element._dragOverHandler, { passive: false });
+      element.addEventListener('dragenter', element._dragEnterHandler, { passive: false });
+      element.addEventListener('dragleave', element._dragLeaveHandler, { passive: false });
+      element.addEventListener('drop', element._dropHandler, { passive: false });
       
 
+    },
+    handleBookmarkDrop(event, targetItem) {
+      const itemType = this.draggedBookmark.type === 'folder' ? '文件夹' : '书签';
+      console.log(`${itemType}拖拽到${itemType}:`, this.draggedBookmark.title, '->', targetItem.title);
+      
+      if (!this.isDragging || !this.draggedBookmark || this.draggedBookmark.id === targetItem.id) {
+        return;
+      }
+      
+      // 防止重复触发
+      if (this.isReordering) {
+        console.log('正在重新排序，忽略重复操作');
+        return;
+      }
+      
+      // 确保在同一个文件夹内且类型相同
+      if (this.draggedBookmark.parentId !== targetItem.parentId) {
+        ElMessage({
+          message: this.t('tips.sameFolder') || '只能在同一文件夹内调整顺序',
+          type: 'warning',
+        });
+        return;
+      }
+      
+
+      
+      // 设置重新排序标志
+      this.isReordering = true;
+      
+      // 调整顺序
+      this.reorderItems(this.draggedBookmark, targetItem);
+    },
+
+    moveFolderToFolder(draggedFolder, targetFolder) {
+      const _this = this;
+      
+      // 防止重复触发
+      if (this.isReordering) {
+        console.log('正在移动文件夹，忽略重复操作');
+        return;
+      }
+      
+      // 防止将文件夹拖拽到自己的子文件夹中
+      if (targetFolder.treeId && targetFolder.treeId.includes(draggedFolder.id)) {
+        ElMessage({
+          message: this.t('tips.cannotMoveToChild') || '不能将文件夹移动到其子文件夹中',
+          type: 'warning',
+        });
+        return;
+      }
+      
+      // 设置移动标志
+      this.isReordering = true;
+      
+      // 更新文件夹的父文件夹
+      const updatedFolder = {
+        ...draggedFolder,
+        parentId: targetFolder.id,
+        syncChrome: false,
+        move: true,
+        index: 0 // 移动到目标文件夹的开头
+      };
+      
+      // 更新树路径信息
+      updatedFolder.treeId = targetFolder.treeId + "/" + targetFolder.id;
+      updatedFolder.treeName = targetFolder.treeName + "/" + targetFolder.title;
+      
+      console.log(`移动文件夹 "${draggedFolder.title}" 到 "${targetFolder.title}" 内部`);
+      
+      // 保存更改
+      BookmarkManager.saveBookmarks([updatedFolder]).then(() => {
+        ElMessage({
+          message: _this.t('tips.moveSuccess') || '移动成功',
+          type: 'success',
+        });
+        
+        // 重置标志
+        _this.isReordering = false;
+        
+        // 延迟重新加载页面
+        setTimeout(() => {
+          _this.reloadBookmarkPage();
+        }, 500);
+        
+      }).catch(error => {
+        console.error('移动文件夹失败:', error);
+        ElMessage({
+          message: _this.t('tips.moveFailed') || '移动失败',
+          type: 'error',
+        });
+        
+        // 重置标志
+        _this.isReordering = false;
+      });
+    },
+    reorderItems(draggedItem, targetItem) {
+      const _this = this;
+      const itemType = draggedItem.type === 'folder' ? '文件夹' : '书签';
+      
+      // 在同一父目录下，基于“全部子项（目录+书签）”的组合列表进行重排与统一重编号
+      const siblingsAll = this.bookmarks
+        .filter(b => b.parentId === draggedItem.parentId)
+        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      
+      // 定位拖拽项与目标项在组合列表中的位置
+      const draggedPosAll = siblingsAll.findIndex(b => b.id === draggedItem.id);
+      const targetPosAll = siblingsAll.findIndex(b => b.id === targetItem.id);
+      if (draggedPosAll === -1 || targetPosAll === -1) {
+        console.error(`找不到${itemType}位置`);
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 如果拖拽项与目标项相邻且是从前往后拖，不必调整
+      if (Math.abs(draggedPosAll - targetPosAll) <= 1 && draggedPosAll < targetPosAll) {
+        ElMessage({
+          message: _this.t('tips.samePosition') || '已在相同位置',
+          type: 'info',
+        });
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 在组合列表中移动拖拽项到目标项之前，仅改变受影响区间的顺序
+      const newOrderAll = [...siblingsAll];
+      const [draggedData] = newOrderAll.splice(draggedPosAll, 1);
+      let insertPosAll = targetPosAll;
+      if (draggedPosAll < targetPosAll) {
+        insertPosAll = targetPosAll - 1;
+      }
+      newOrderAll.splice(insertPosAll, 0, draggedData);
+      
+      // 统一为同一父目录的所有子项重编号，确保只影响需要移动的区间，整体相对顺序不变
+      const updatedItems = newOrderAll.map((item, index) => ({
+        ...item,
+        index,
+        syncChrome: false,
+        move: true
+      }));
+      
+      console.log(`重新排序: 将 "${draggedItem.title}" 移动到 "${targetItem.title}" 之前（按组合列表重排）`);
+      
+      // 保存所有更新的项目
+      BookmarkManager.saveBookmarks(updatedItems).then(() => {
+        ElMessage({
+          message: _this.t('tips.reorderSuccess') || '调整顺序成功',
+          type: 'success',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+        
+        // 延迟重新加载页面
+        setTimeout(() => {
+          _this.reloadBookmarkPage();
+        }, 500);
+        
+      }).catch(error => {
+        console.error(`调整${itemType}顺序失败:`, error);
+        ElMessage({
+          message: _this.t('tips.reorderFailed') || '调整顺序失败',
+          type: 'error',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+      });
+    },
+    reorderBookmarks(draggedBookmark, targetBookmark) {
+      const _this = this;
+      
+      // 获取当前文件夹中的所有书签，按index排序
+      const folderBookmarks = this.bookmarks.filter(b => 
+        b.type === 'bookmark' && b.parentId === draggedBookmark.parentId
+      ).sort((a, b) => (a.index || 0) - (b.index || 0));
+      
+      console.log('当前文件夹书签顺序:', folderBookmarks.map(b => `${b.title}(${b.index})`));
+      
+      // 找到拖拽书签和目标书签在排序后数组中的位置
+      const draggedPos = folderBookmarks.findIndex(b => b.id === draggedBookmark.id);
+      const targetPos = folderBookmarks.findIndex(b => b.id === targetBookmark.id);
+      
+      if (draggedPos === -1 || targetPos === -1) {
+        console.error('找不到书签位置');
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 如果拖拽到相邻位置，不做操作
+      if (Math.abs(draggedPos - targetPos) <= 1 && draggedPos < targetPos) {
+        ElMessage({
+          message: _this.t('tips.samePosition') || '已在相同位置',
+          type: 'info',
+        });
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 重新排列数组：移除拖拽的书签，插入到目标位置之前
+      const newOrder = [...folderBookmarks];
+      const [draggedItem] = newOrder.splice(draggedPos, 1);
+      
+      // 计算插入位置（目标书签之前）
+      let insertPos = targetPos;
+      if (draggedPos < targetPos) {
+        // 从前往后拖拽时，目标位置需要减1（因为已经移除了一个元素）
+        insertPos = targetPos - 1;
+      }
+      
+      newOrder.splice(insertPos, 0, draggedItem);
+      
+      console.log('新的书签顺序:', newOrder.map(b => b.title));
+      
+      // 更新所有书签的索引
+      const updatedBookmarks = newOrder.map((bookmark, index) => ({
+        ...bookmark,
+        index: index,
+        syncChrome: false,
+        move: true
+      }));
+      
+      console.log(`重新排序: 将 "${draggedBookmark.title}" 移动到 "${targetBookmark.title}" 之前`);
+      
+      // 保存所有更新的书签
+      BookmarkManager.saveBookmarks(updatedBookmarks).then(() => {
+        ElMessage({
+          message: _this.t('tips.reorderSuccess') || '调整顺序成功',
+          type: 'success',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+        
+        // 延迟重新加载页面
+        setTimeout(() => {
+          _this.reloadBookmarkPage();
+        }, 500);
+        
+      }).catch(error => {
+        console.error('调整书签顺序失败:', error);
+        ElMessage({
+          message: _this.t('tips.reorderFailed') || '调整顺序失败',
+          type: 'error',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+      });
     },
     handleMouseOver(data) {
       // 鼠标悬浮时，记录当前节点的 ID
@@ -991,7 +1303,7 @@ export default {
     handleDragStart(event, data) {
 
       
-      if (!this.setting.editModel || data.type !== 'bookmark') {
+      if (!this.setting.editModel || (data.type !== 'bookmark' && data.type !== 'folder')) {
 
         event.preventDefault();
         return false;
@@ -1008,7 +1320,7 @@ export default {
       // 设置拖拽数据
       const dragData = {
         id: data.id,
-        type: 'bookmark',
+        type: data.type,
         title: data.title,
         url: data.url,
         parentId: data.parentId
@@ -1037,7 +1349,8 @@ export default {
       
       // 创建拖拽图像（可选）
       const dragImage = document.createElement('div');
-      dragImage.textContent = `📖 ${data.title}`;
+      const icon = data.type === 'folder' ? '📁' : '📖';
+      dragImage.textContent = `${icon} ${data.title}`;
       dragImage.style.position = 'absolute';
       dragImage.style.top = '-1000px';
       dragImage.style.padding = '4px 8px';
@@ -1069,12 +1382,13 @@ export default {
       this.isDragging = false;
       this.draggedBookmark = null;
       this.dragOverFolder = null;
+      this.isReordering = false;
       
       // 恢复文本选择
       document.body.classList.remove('dragging-active');
       
       // 恢复所有可能的拖拽样式 - 使用更广泛的选择器
-      const allRows = document.querySelectorAll('#bookmarkList .bookmark-row-compact, #bookmarkList [data-bookmark-type="bookmark"]');
+      const allRows = document.querySelectorAll('#bookmarkList .bookmark-row-compact, #bookmarkList [data-bookmark-type="bookmark"], #bookmarkList [data-bookmark-type="folder"]');
       allRows.forEach(row => {
         row.style.opacity = '';
         row.style.transform = '';
@@ -1088,6 +1402,12 @@ export default {
       const allFolders = document.querySelectorAll('.folder-drop-zone-wrapper');
       allFolders.forEach(folder => {
         folder.classList.remove('drag-over');
+      });
+      
+      // 清除所有书签的拖拽悬停状态
+      const allBookmarkRows = document.querySelectorAll('.bookmark-drag-over');
+      allBookmarkRows.forEach(row => {
+        row.classList.remove('bookmark-drag-over');
       });
       
 
@@ -1104,7 +1424,7 @@ export default {
       document.body.classList.remove('dragging-active');
       
       // 恢复所有可能的拖拽样式 - 使用更广泛的选择器
-      const allRows = document.querySelectorAll('#bookmarkList .bookmark-row-compact, #bookmarkList [data-bookmark-type="bookmark"]');
+      const allRows = document.querySelectorAll('#bookmarkList .bookmark-row-compact, #bookmarkList [data-bookmark-type="bookmark"], #bookmarkList [data-bookmark-type="folder"]');
       allRows.forEach(row => {
         row.style.opacity = '';
         row.style.transform = '';
@@ -1118,6 +1438,12 @@ export default {
       const allFolders = document.querySelectorAll('.folder-drop-zone-wrapper');
       allFolders.forEach(folder => {
         folder.classList.remove('drag-over');
+      });
+      
+      // 清除所有书签的拖拽悬停状态
+      const allBookmarkRows = document.querySelectorAll('.bookmark-drag-over');
+      allBookmarkRows.forEach(row => {
+        row.classList.remove('bookmark-drag-over');
       });
       
 
@@ -1173,13 +1499,17 @@ export default {
       }
       
       try {
-        const bookmarkData = JSON.parse(dragData);
+        const itemData = JSON.parse(dragData);
 
 
         
-        if (bookmarkData.type === 'bookmark' && folderData.type === 'folder') {
+        if (itemData.type === 'bookmark' && folderData.type === 'folder') {
 
-          this.moveBookmarkToFolder(bookmarkData, folderData);
+          this.moveBookmarkToFolder(itemData, folderData);
+        } else if (itemData.type === 'folder' && folderData.type === 'folder') {
+          // 文件夹拖拽到左侧目录树：更换父目录
+          console.log('文件夹拖拽到左侧目录树，更换父目录');
+          this.moveFolderToFolder(itemData, folderData);
         } else {
 
         }
@@ -1261,6 +1591,17 @@ export default {
         return;
       }
       
+      // 只有在查看特定文件夹时才允许拖拽调整顺序
+      // 检查是否在特定文件夹中（parentId查询且不是搜索状态）
+      const isInSpecificFolder = this.lastQueryParam && 
+                                this.lastQueryParam.prop === 'parentId' && 
+                                !this.searchQuery.value;
+      
+      if (!isInSpecificFolder) {
+
+        return;
+      }
+      
       // 使用 MutationObserver 监听 DOM 变化，确保虚拟滚动的元素都被处理
       const setupDragWithObserver = () => {
         const treeContainer = document.querySelector('#bookmarkList');
@@ -1283,11 +1624,12 @@ export default {
           mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                // 检查是否有新的书签行
-                const newBookmarkRows = node.querySelectorAll ? 
-                  node.querySelectorAll('[data-bookmark-type="bookmark"]') : [];
-                if (newBookmarkRows.length > 0 || 
-                    (node.getAttribute && node.getAttribute('data-bookmark-type') === 'bookmark')) {
+                // 检查是否有新的书签或文件夹行
+                const newItemRows = node.querySelectorAll ? 
+                  node.querySelectorAll('[data-bookmark-type="bookmark"], [data-bookmark-type="folder"]') : [];
+                if (newItemRows.length > 0 || 
+                    (node.getAttribute && (node.getAttribute('data-bookmark-type') === 'bookmark' || 
+                     node.getAttribute('data-bookmark-type') === 'folder'))) {
                   hasNewBookmarkRows = true;
                 }
               }
@@ -1325,22 +1667,38 @@ export default {
         return;
       }
       
-      // 查找所有可见的书签行元素
-      const bookmarkRows = treeContainer.querySelectorAll('[data-bookmark-type="bookmark"]');
+      // 检查是否在特定文件夹中
+      const isInSpecificFolder = this.lastQueryParam && 
+                                this.lastQueryParam.prop === 'parentId' && 
+                                !this.searchQuery.value;
+      
+      // 查找所有可见的书签和文件夹行元素
+      const bookmarkRows = treeContainer.querySelectorAll('[data-bookmark-type="bookmark"], [data-bookmark-type="folder"]');
 
       
       bookmarkRows.forEach((row) => {
+        // 如果不在特定文件夹中，清理拖拽设置
+        if (!isInSpecificFolder) {
+          if (row.hasAttribute('data-drag-setup')) {
+            row.removeAttribute('data-drag-setup');
+            row.draggable = false;
+            row.style.cursor = '';
+            row.classList.remove('bookmark-draggable');
+          }
+          return;
+        }
+        
         // 检查是否已经设置过拖拽
         if (row.hasAttribute('data-drag-setup')) {
           return;
         }
         
-        const bookmarkId = row.getAttribute('data-bookmark-id');
-        const bookmark = this.bookmarks.find(b => b.id === bookmarkId);
+        const itemId = row.getAttribute('data-bookmark-id');
+        const item = this.bookmarks.find(b => b.id === itemId);
         
-        if (bookmark && bookmark.type === 'bookmark') {
+        if (item && (item.type === 'bookmark' || item.type === 'folder')) {
 
-          this.setupDragForBookmark(row, bookmark);
+          this.setupDragForBookmark(row, item);
           row.setAttribute('data-drag-setup', 'true');
         }
       });
@@ -1592,6 +1950,34 @@ export default {
     queryByDir(data) {
       let _this = this;
       _this.showContextMenu = false;
+      
+      // 清空搜索关键字与搜索状态，切换为目录查询场景
+      if (_this.searchQuery) {
+        _this.searchQuery.value = '';
+        // 可选：恢复默认搜索属性
+        if (_this.searchQuery.prop === undefined || _this.searchQuery.prop === null) {
+          _this.searchQuery.prop = 'title';
+        }
+      }
+      if (_this.statistics && Array.isArray(_this.statistics.selectStatus)) {
+        _this.statistics.selectStatus = [];
+      }
+      _this.showDir = false;
+      
+      
+      // 清空搜索关键字与搜索状态，切换为目录查询场景
+      if (_this.searchQuery) {
+        _this.searchQuery.value = '';
+        // 可选：恢复默认搜索属性
+        if (_this.searchQuery.prop === undefined || _this.searchQuery.prop === null) {
+          _this.searchQuery.prop = 'title';
+        }
+      }
+      if (_this.statistics && Array.isArray(_this.statistics.selectStatus)) {
+        _this.statistics.selectStatus = [];
+      }
+      _this.showDir = false;
+      
       _this.lastQueryParam = {
         prop: 'parentId',
         operator: 'eq',
@@ -2407,6 +2793,21 @@ export default {
   -ms-user-select: none;
 }
 
+/* 书签拖拽悬停效果 */
+.bookmark-drag-over {
+  position: relative;
+}
+
+.bookmark-drag-over::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #409eff;
+}
+
 .el-tree-node.is-drop-inner {
   background-color: #f0f9ff;
   border: 2px dashed #409eff;
@@ -2429,6 +2830,11 @@ export default {
 
 .folder-drop-zone-wrapper:hover {
   background-color: #f5f7fa;
+}
+
+/* 文件夹拖拽样式 */
+.folder-drop-zone-wrapper {
+  transition: all 0.2s ease;
 }
 
 .folder-drop-zone-wrapper.drag-over {
