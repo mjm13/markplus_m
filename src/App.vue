@@ -350,7 +350,7 @@
                         <div class="bookmark-meta-inline">
                           <el-tag v-if="showDir" type="warning" size="small" class="compact-tag">{{data.treeName}}</el-tag>
                           
-                          <template v-if="setting.editModel && hoveredNode === data.id">
+                          <div v-if="setting.editModel" class="bookmark-edit-buttons">
                             <el-button circle class="iconBtn compact-btn" :title="t('btn.locate')" type="warning" @click="locationDir(data)">
                               <el-icon>
                                 <Location />
@@ -372,7 +372,7 @@
                                 <Edit/>
                               </el-icon>
                             </el-button>
-                          </template>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2321,6 +2321,23 @@ export default {
   overflow: visible;
   padding: 2px 8px 2px 4px;
   white-space: nowrap;
+  justify-content: flex-end;
+}
+
+/* 编辑按钮容器 - 始终占据空间但默认不可见 */
+.bookmark-edit-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 悬浮时显示编辑按钮 */
+.bookmark-row-compact:hover .bookmark-edit-buttons {
+  opacity: 1;
+  visibility: visible;
 }
 
 .compact-tag {
@@ -2470,7 +2487,7 @@ export default {
   width: 100%;
   display: flex !important;
   align-items: center !important;
-  min-height: 28px !important;
+  min-height: 26px !important;
   /* 保持与默认状态相同的高度，不添加额外padding */
 }
 
