@@ -1473,7 +1473,7 @@ export default {
       }, 100);
     },
     handleFolderDrop(event, folderData) {
-
+      ;
       
       event.preventDefault();
       this.dragOverFolder = null;
@@ -1484,7 +1484,10 @@ export default {
       }
       
       // 检查是否拖拽到同一个父文件夹
-      if (this.draggedBookmark.parentId === folderData.id) {
+      if (this.draggedBookmark.id === folderData.id
+        || this.draggedBookmark.parentId === folderData.id
+        ||  this.draggedBookmark.id === folderData.parentId
+      ) {
 
         this.$message.info(this.t('tips.sameFolder'));
         return;
@@ -1499,6 +1502,7 @@ export default {
       }
       
       try {
+        
         const itemData = JSON.parse(dragData);
 
 
@@ -1518,6 +1522,7 @@ export default {
       }
     },
     allowDrop(draggingNode, dropNode, type) {
+      ;
       // 只允许拖拽到文件夹内部
       return type === 'inner' && dropNode.data.type === 'folder';
     },
@@ -1525,7 +1530,7 @@ export default {
       // 这个方法处理外部拖拽到树节点的情况
       const dragData = ev.dataTransfer?.getData('text/plain');
       if (!dragData) return;
-      
+      ;
       try {
         const bookmarkData = JSON.parse(dragData);
         if (bookmarkData.type === 'bookmark' && dropNode.data.type === 'folder') {
