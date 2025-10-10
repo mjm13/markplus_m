@@ -2217,13 +2217,6 @@ export default {
       if(!data){
         data = this.originalBookmark;
       }
-      if(data.childrenCount && data.childrenCount > 0){
-        ElMessage({
-          message: _this.t('tips.cub'),
-          type: 'warning',
-        });
-        return;
-      }
       BookmarkManager.deleteBookmarks([{...data, syncChrome: false}]).then(() => {
         ElMessage({
           message: _this.t('tips.success'),

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MarkPlus-M",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "扩展书签的功能，增加额外字段用于查询和整理。",
   "options_page": "index.html",
   "permissions": [
