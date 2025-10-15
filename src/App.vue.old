@@ -1,0 +1,2886 @@
+<template>
+  <el-container>
+    <el-header height="50px" style="width: 100%;display: flex;flex-direction: row;padding: 0px;">
+      <div style="width: 300px;align-self: end;padding-bottom: 14px;">
+        <template v-if="setting.editModel">
+          <div style="display: flex;width: 95%;flex-wrap: wrap;justify-content: space-between;">
+            <el-badge v-if="setting.debug" :max="10000" :offset="[-5,0]" :value="statistics.total" :title="t('statistics.total')" type="info">
+              <el-button style="padding: 5px;" type="default"
+                         @click="searchStatisticsBookmarks({prop: 'parentId',operator: 'eq',value: '1'})">
+                <el-icon size="20px">
+                  <Collection/>
+                </el-icon>
+              </el-button>
+            </el-badge>
+
+            <el-badge :max="10000" :offset="[-5,0]" :value="statistics['404']" :title="t('statistics.404')" type="info"
+                      v-if="statistics['404']>0">
+            <el-button  style="padding: 5px;" type="default"
+                        @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: 404})">
+              <el-icon size="20px">
+                <Hide />
+              </el-icon>
+            </el-button>
+            </el-badge>
+
+            <el-button  style="padding: 5px;" type="default" :title="t('statistics.undo')"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: -99})">
+              <el-icon size="20px">
+                <MuteNotification/>
+              </el-icon>
+            </el-button>
+
+          <el-badge :max="10000" :offset="[-5,0]" :value="statistics.pending" :title="t('statistics.pending')" type="info"
+                    v-if="statistics.pending>0">
+            <el-button style="padding: 5px;" type="default"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: 0})">
+              <el-icon size="20px">
+                <Compass/>
+              </el-icon>
+            </el-button>
+          </el-badge>
+
+          <el-badge :max="10000" :offset="[-5,0]" :value="statistics.over" :title="t('statistics.over')" type="success"
+                    v-if="statistics.over>0">
+            <el-button style="padding: 5px;" type="default"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'in',value: [2,9]})">
+              <el-icon size="20px">
+                <CircleCheck/>
+              </el-icon>
+            </el-button>
+          </el-badge>
+
+          <el-badge :max="10000" :offset="[-5,0]" :value="statistics.same" :title="t('statistics.same')" type="warning"
+                    v-if="statistics.same>0">
+            <el-button style="padding: 5px;" type="default"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: -3})">
+              <el-icon size="20px">
+                <DocumentCopy/>
+              </el-icon>
+            </el-button>
+          </el-badge>
+
+          <el-badge :max="10000" :offset="[-5,0]" :value="statistics.change" :title="t('statistics.change')" type="warning"
+                    v-if="statistics.change>0">
+            <el-button style="padding: 5px;" type="default"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: -2})">
+              <el-icon size="20px">
+                <Warning/>
+              </el-icon>
+            </el-button>
+          </el-badge>
+
+          <el-badge :max="10000" :offset="[-5,0]" :value="statistics.error" :title="t('statistics.error')" type="danger"
+                    v-if="statistics.error>0">
+            <el-button style="padding: 5px;" type="default"
+                       @click="searchStatisticsBookmarks({prop: 'status',operator: 'eq',value: -1})">
+              <el-icon size="20px">
+                <CircleClose/>
+              </el-icon>
+            </el-button>
+          </el-badge>
+          </div>
+        </template>
+        <template v-else-if="!setting.editModel">
+          <el-link href="https://github.com/mjm13/markplus_m" target="_blank" type="primary" style="margin-left: 20px;">
+            <el-image fit="cover"
+                      style="width: 32px; height: 32px"
+                      src="src/assets/icons/icon48.png"
+            />
+            MarkPlus-M
+          </el-link>
+        </template>
+      </div>
+      <div style="width: calc(99% - 720px);align-self: center;padding-left: 20px;">
+        <el-input v-model="searchQuery.value"
+                  size="default"
+                  style="width: 98%"
+                  @keydown.enter="searchBookmarks">
+          <template #prefix>
+            <el-checkbox
+                style="padding-left: 3px;border-right: 1px solid rgb(220, 223, 230);padding-right: 10px;"
+                v-if="setting.editModel"
+                @change="handleCheckAll"
+            />
+            <el-select
+                v-model="searchQuery.prop"
+                class="custom-select"
+            >
+              <el-option
+                  v-for="item in searchQuery.options"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+              </el-option>
+            </el-select>
+          </template>
+          <template #suffix>
+            <el-icon class="el-input__icon">
+              <search/>
+            </el-icon>
+          </template>
+        </el-input>
+      </div>
+      <el-space style="width: 120px;" size="small">
+        <el-switch v-model="setting.editModel" @change="handleEditModelChange">
+          <template #active-action>
+            <span>E</span>
+          </template>
+          <template #inactive-action>
+            <span>R</span>
+          </template>
+        </el-switch>
+
+        <template v-if="setting.editModel">
+          <el-button circle size="default" :title="t('btn.crawlMeta')"  @click="crawlMeta"
+                     v-if="setting.crawlStatus == '0'">
+            <el-icon size="18">
+              <Promotion/>
+            </el-icon>
+          </el-button>
+
+          <el-button circle size="default" :title="t('btn.stopCrawlMeta')"  @click="stopCrawlMeta"
+                     v-else-if="setting.crawlStatus == '1'">
+            <el-icon size="18">
+              <SwitchButton/>
+            </el-icon>
+          </el-button>
+
+          <el-button circle size="default" :title="t('btn.userConfig')"  @click="setting.showUserConfig=true">
+            <el-icon size="18">
+              <Setting/>
+            </el-icon>
+          </el-button>
+
+
+          <el-button circle size="default" :title="t('btn.showBookmarkStatus')"  @click="showBookmarkStatus">
+            <el-icon size="18">
+              <Edit/>
+            </el-icon>
+          </el-button>
+
+          <el-popconfirm :title="t('confirm.deleteAll')"  width="200px"
+                         @confirm="removeAllCheck">
+            <template #reference>
+              <el-button circle size="default" :title="t('btn.delSelect')"  >
+                <el-icon size="18">
+                  <Delete/>
+                </el-icon>
+              </el-button>
+            </template>
+          </el-popconfirm>
+
+          <el-button circle size="default"   @click="downLoadBookmarks">
+            <el-icon size="18">
+              <Download/>
+            </el-icon>
+          </el-button>
+
+          <el-upload
+              :auto-upload="false"
+              :on-change="handleFileUpload"
+              :show-file-list="false"
+              action="#"
+          >
+            <el-button circle size="default"  >
+              <el-icon size="18">
+                <Upload/>
+              </el-icon>
+            </el-button>
+          </el-upload>
+
+          <el-popconfirm :title="t('confirm.reloadBookMark')" width="200px"
+                         @confirm="reloadBookMark">
+            <template #reference>
+              <el-button circle size="default" :title="t('btn.reloadBookMark')"  >
+                <el-icon size="18">
+                  <RefreshLeft />
+                </el-icon>
+              </el-button>
+            </template>
+          </el-popconfirm>
+        </template>
+
+      </el-space>
+    </el-header>
+    <el-container style="height: 90vh">
+      <el-aside
+          :style="{ width: '300px',borderRight:'3px solid var(--el-border-color)' }"
+      >
+        <el-scrollbar ref="dirRefContainer">
+          <el-tree ref="dirRef"
+                   :data="treeData"
+                   :expand-on-click-node="false"
+                   default-expand-all
+                   node-key="id"
+                   :highlight-current="true"
+                   :draggable="false"
+                   :allow-drop="allowDrop"
+                   @node-drop="handleNodeDrop"
+                   @node-drag-end="moveBookMarkDir"
+                   @node-contextmenu="handleRightClick"
+                   @node-click="queryByDir">
+            <template #default="{ node, data }">
+              <div 
+                class="folder-drop-zone-wrapper"
+                @dragover="handleFolderDragOver"
+                @drop="handleFolderDrop($event, data)"
+                @dragleave="handleFolderDragLeave"
+                @dragenter="dragOverFolder = data.id"
+                :data-folder-id="data.id"
+                :class="{ 'drag-over': dragOverFolder === data.id }"
+              >
+                <div class="bookmark-node">
+                  <el-icon class="folder-icon">
+                    <Folder/>
+                  </el-icon>
+                  <el-text class="bookmark-title">{{ data.title }}</el-text>
+                  <el-tag
+                      :round="true"
+                      class="child-count-tag"
+                      size="small"
+                      type="info"
+                  >
+                    {{ data.childrenCount }}
+                  </el-tag>
+                </div>
+              </div>
+            </template>
+          </el-tree>
+          <div
+              v-show="showContextMenu"
+              class="context-menu"
+              :style="{ left: menuLeft + 'px', top: menuTop + 'px' }"
+          >
+            <div class="menu-item" @click="removeBookmark(null)">{{ t('btn.del') }}</div>
+            <div class="menu-item" @click="editBookmark(null)">{{ t('btn.edit') }}</div>
+          </div>
+        </el-scrollbar>
+      </el-aside>
+      <el-main style="padding-top: 10px;padding-bottom: 10px">
+        <el-auto-resizer>
+          <template #default="{ height, width }">
+            <el-scrollbar style="border-radius: 4px;box-shadow: 0 2px 12px 0 #909399">
+              <el-tree-v2 :data="bookmarks"
+                          id="bookmarkList"
+                          :highlight-current="true"
+                          ref="bookmarkList"
+                          :show-checkbox="setting.editModel"
+                          :item-size="36"
+                          :height="height-10"
+                          node-key="id">
+                <template #default="{ node, data }">
+                  <div 
+                    class="bookmark-row-compact"
+                    @mouseover="handleMouseOver(data)"
+                    :class="{ 
+                      'dragging': isDragging && draggedBookmark?.id === data.id,
+                      'bookmark-draggable': setting.editModel && lastQueryParam && lastQueryParam.prop === 'parentId' && !searchQuery.value && (data.type === 'bookmark' || data.type === 'folder')
+                    }"
+                    :data-bookmark-id="data.id"
+                    :data-bookmark-type="data.type"
+                  >
+                    <div class="bookmark-content-col">
+                      <div class="bookmark-main-content">
+                        <template v-if="data.type === 'folder'">
+                          <el-icon class="bookmark-icon">
+                            <Folder/>
+                          </el-icon>
+                          <el-tooltip
+                              :raw-content="true"
+                              placement="top"
+                              effect="light"
+                              trigger="click"
+                          >
+                            <template #content>
+                              <el-descriptions
+                                  direction="horizontal"
+                                  :column="1"
+                                  size="small"
+                                  border
+                              >
+                                <el-descriptions-item v-if="setting.debug" label="id"><span v-html="data.id"></span></el-descriptions-item>
+                                <el-descriptions-item :label="t('bookmark.treeName')"><span v-html="data.treeNameShow || data.treeName"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.title" :label="t('bookmark.title')"><span v-html="data.titleShow || data.title" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.dateAddedTime" :label="t('bookmark.dateAddedTime')"><span v-html="data.dateAddedTimeShow || data.dateAddedTime"></span></el-descriptions-item>
+                              </el-descriptions>
+                            </template>
+                            <el-text class="dir-text compact-text" @dblclick="queryByDir(data)" v-html="data.titleShow || data.title"/>
+                          </el-tooltip>
+                        </template>
+                        <template v-else>
+                          <img :src="getFaviconUrl(data.url)" class="bookmark-favicon"/>
+                          <el-tooltip
+                              :raw-content="true"
+                              placement="top"
+                              effect="light"
+                              trigger="click"
+                          >
+                            <template #content>
+                              <el-descriptions
+                                  direction="horizontal"
+                                  :column="1"
+                                  size="small"
+                                  border
+                              >
+                                <el-descriptions-item v-if="setting.debug" label="id"><span v-html="data.id"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="setting.debug" label="status"><span v-html="data.status"></span></el-descriptions-item>
+                                <el-descriptions-item :label="t('bookmark.treeName')"><span v-html="data.treeNameShow || data.treeName"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.title " :label="t('bookmark.title')"><span v-html="data.titleShow || data.title" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.url " :label="t('bookmark.url')"><span v-html="data.urlShow || data.url" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.currentUrl && data.url!=data.currentUrl" :label="t('bookmark.currentUrl')"><span v-html="data.currentUrlShow || data.currentUrl" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.metaTitle" :label="t('bookmark.metaTitle')"><span v-html="data.metaTitleShow || data.metaTitle" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.metaKeywords " :label="t('bookmark.metaKeywords')"><span v-html="data.metaKeywordsShow || data.metaKeywords" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.metaDescription " :label="t('bookmark.metaDescription')" ><span v-html="data.metaDescriptionShow || data.metaDescription" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.tags" :label="t('bookmark.tags')"><span v-html="data.tagsShow || data.tags" class="bookmark_tips"></span></el-descriptions-item>
+                                <el-descriptions-item v-if="data.dateAddedTime" :label="t('bookmark.dateAddedTime')"><span v-html="data.dateAddedTimeShow || data.dateAddedTime"></span></el-descriptions-item>
+                              </el-descriptions>
+                            </template>
+                            <el-text class="bookmark-text compact-text" truncated @dblclick="openUrl(data)" v-html="showTitle(data)"/>
+                          </el-tooltip>
+                        </template>
+                        
+                        <div class="bookmark-meta-inline">
+                          <el-tag v-if="showDir" type="warning" size="small" class="compact-tag">{{data.treeName}}</el-tag>
+                          
+                          <div v-if="setting.editModel" class="bookmark-edit-buttons">
+                            <el-button circle class="iconBtn compact-btn" :title="t('btn.locate')" type="warning" @click="locationDir(data)">
+                              <el-icon>
+                                <Location />
+                              </el-icon>
+                            </el-button>
+
+                            <el-popconfirm :title="t('confirm.delete')" width="300px"
+                                           @confirm="removeBookmark(data)">
+                              <template #reference>
+                                <el-button circle class="iconBtn compact-btn" :title="t('btn.del')" type="danger">
+                                  <el-icon>
+                                    <Delete/>
+                                  </el-icon>
+                                </el-button>
+                              </template>
+                            </el-popconfirm>
+                            <el-button circle class="iconBtn compact-btn" :title="t('btn.edit')" type="primary" @click="editBookmark(data)">
+                              <el-icon>
+                                <Edit/>
+                              </el-icon>
+                            </el-button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="bookmark-status-col">
+                      <template v-if="data.type === 'bookmark'">
+                        <template v-if="data.status === 2">
+                          <el-icon color="#409efc" :title="t('bookmark.status_show.2')">
+                            <CircleCheck/>
+                          </el-icon>
+                        </template>
+                        <template v-else-if="data.status === -99">
+                          <el-icon :title="t('bookmark.status_show.-99')">
+                            <MuteNotification/>
+                          </el-icon>
+                        </template>
+                        <template v-else-if="data.status === 0">
+                          <el-icon :title="t('bookmark.status_show.0')">
+                            <Compass/>
+                          </el-icon>
+                        </template>
+                        <template v-else-if="data.status === 9">
+                          <el-icon color="#67c23a" :title="t('bookmark.status_show.9')">
+                            <CollectionTag/>
+                          </el-icon>
+                        </template>
+                        <template v-else-if="data.status === -1">
+                          <el-icon color="#F56C6C" :title="t('bookmark.status_show.-1')">
+                            <CircleClose/>
+                          </el-icon>
+                        </template>
+                        <template v-else-if="data.status === -2">
+                          <el-icon color="#ffc107" :title="t('bookmark.status_show.-2')">
+                            <Warning/>
+                          </el-icon>
+                        </template>
+                        <template v-else-if="data.status === -3">
+                          <el-icon color="#ffc107" :title="t('bookmark.status_show.-3')">
+                            <DocumentCopy/>
+                          </el-icon>
+                        </template>
+                        <template v-else-if="data.status === 404">
+                          <el-icon  :title="t('bookmark.status_show.404')">
+                            <Hide />
+                          </el-icon>
+                        </template>
+                      </template>
+                    </div>
+
+                  </div>
+                </template>
+
+              </el-tree-v2>
+            </el-scrollbar>
+          </template>
+        </el-auto-resizer>
+
+        <el-badge :max="10000" :value="statistics.show" :title="t('statistics.show')" type="info"
+                  style="position: absolute;top: 95%;left: 97%;z-index: 1000">
+          <template #content="{ value }">
+            {{ value }}
+          </template>
+        </el-badge>
+      </el-main>
+    </el-container>
+  </el-container>
+
+  <el-dialog v-model="showBookmarkDailog" :title="t('bookmarkDailog.dailogTitle')" width="800">
+    <el-form :model="bookmark" label-width="auto" >
+      <el-form-item :label="t('bookmark.title')">
+        <el-input v-model="bookmark.title"/>
+      </el-form-item>
+      <template v-if="bookmark.type === 'folder'">
+        <el-form-item :label="t('bookmark.treeName')">
+          <el-input v-model="bookmark.treeName" disabled/>
+        </el-form-item>
+      </template>
+      <template v-if="bookmark.type === 'bookmark'">
+        <el-form-item :label="t('bookmark.url')">
+          <el-input v-model="bookmark.url"/>
+        </el-form-item>
+        <el-form-item :label="t('bookmark.status')">
+          <el-select
+              v-model="bookmark.status"
+          >
+            <el-option
+                v-for="item in bookmarkStatus"
+                :key="item.value"
+                :label="item.key"
+                :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('bookmark.tags')">
+          <el-space :size="10" style="width: 600px;" wrap>
+            <el-tag
+                v-for="tag in bookmark.tags"
+                :key="tag"
+                :disable-transitions="false"
+                closable
+                @close="handleClose(tag)"
+            >
+              {{ tag }}
+            </el-tag>
+            <el-input
+                v-if="inputVisible"
+                ref="InputRef"
+                v-model="inputValue"
+                class="w-10"
+                size="small"
+                @blur="handleInputConfirm"
+                @keyup.enter="handleInputConfirm"
+            />
+            <el-button v-else class="button-new-tag" size="small" @click="showInput">
+              +{{ t('bookmark.tags') }}
+            </el-button>
+          </el-space>
+        </el-form-item>
+
+        <el-form-item :label="t('bookmark.treeName')">
+          <el-input v-model="bookmark.treeName" disabled/>
+        </el-form-item>
+        <el-form-item :label="t('bookmark.currentUrl')">
+          <el-input v-model="bookmark.currentUrl" disabled/>
+        </el-form-item>
+        <el-form-item :label="t('bookmark.metaTitle')">
+          <el-input v-model="bookmark.metaTitle" :disabled="!setting.debug"/>
+        </el-form-item>
+        <el-form-item :label="t('bookmark.metaKeywords')">
+          <el-input v-model="bookmark.metaKeywords" disabled/>
+        </el-form-item>
+        <el-form-item :label="t('bookmark.metaDescription')">
+          <el-input v-model="bookmark.metaDescription" autosize disabled type="textarea"/>
+        </el-form-item>
+      </template>
+      <el-form-item :label="t('bookmark.dateAddedTime')">
+        <el-input v-model="bookmark.dateAddedTime" disabled/>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="saveBookmark">{{ t('btn.save') }}</el-button>
+        <el-button @click="closeBookmarkDialog">{{ t('btn.close') }}</el-button>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+
+  <el-dialog v-model="showBookmarkStatusDailog" width="500">
+    <el-form :model="changeBookmarkStatus" label-width="auto">
+      <el-form-item :label="t('bookmark.folder')">
+        <el-tree-select
+            v-model="changeBookmarkStatus.parentId"
+            :data="treeData"
+            default-expand-all
+            node-key="id"
+            check-strictly
+            :render-after-expand="true"
+        >
+          <template #default="{ node, data }">
+            <div class="bookmark-node">
+              <el-icon class="folder-icon">
+                <Folder/>
+              </el-icon>
+              <el-text class="bookmark-title">{{ data.title }}</el-text>
+            </div>
+          </template>
+        </el-tree-select>
+      </el-form-item>
+      <el-form-item :label="t('bookmark.status')">
+        <el-select
+            v-model="changeBookmarkStatus.status"
+        >
+          <el-option
+              v-for="item in bookmarkStatus"
+              :key="item.value"
+              :label="item.key"
+              :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="saveBookmarkStatus">{{ t('btn.save') }}</el-button>
+        <el-button type="warning" v-if="lastQueryParam.prop=='status' && lastQueryParam.value==-2" @click="syncUrl">{{ t('btn.syncUrl') }}</el-button>
+        <el-button @click="showBookmarkStatusDailog=false">{{ t('btn.close') }}</el-button>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+
+
+
+  <el-drawer v-model="setting.showUserConfig" direction="rtl">
+    <template #header>
+      {{ t('userConfig.title') }}
+    </template>
+    <template #default>
+      <el-form :model="userSetting" label-width="auto" label-position="top">
+        <el-form-item :label="t('userConfig.crawlQueueLength')" :title="t('userConfig.crawlQueueLength_title')">
+          <el-slider
+              v-model="userSetting.crawlQueueLength"
+              :min="1"
+              :max="30"
+              :show-input="true"
+          />
+        </el-form-item>
+        <el-form-item :label="t('userConfig.maxSummarizeTags')" :title="t('userConfig.maxSummarizeTags_title')">
+          <el-slider
+              v-model="userSetting.maxSummarizeTags"
+              :min="1"
+              :max="20"
+              :show-input="true"
+          />
+        </el-form-item>
+        <el-form-item :label="t('userConfig.crawlStatus')" :title="t('userConfig.crawlStatus_title')">
+          <el-select
+              v-model="userSetting.crawlStatus"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              :max-collapse-tags="3"
+              placeholder="Select"
+          >
+            <el-option
+                v-for="item in bookmarkStatus"
+                :key="item.value"
+                :label="item.key"
+                :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('userConfig.llmEnabled')" label-position="left">
+          <el-row style="width: 99%">
+            <el-col :span="4">
+              <el-switch v-model="userSetting.llmEnabled"/>
+            </el-col>
+            <el-col :span="5">
+              <el-select v-model="userSetting.provider" v-show="userSetting.llmEnabled">
+                <el-option
+                    v-for="item in providers"
+                    :label="item.label"
+                    :value="item.value"
+                >
+                  <div style="display: flex;align-items: center;">
+                    <el-image style="margin-right: 8px;width: 16px;height: 16px;background-color: #000" :src="'src/assets/icons/'+item.value+'.png'" />
+                    <span style="padding-left: 10px">{{ item.label }}</span>
+                  </div>
+                </el-option>
+                <template #label="{ label, value }">
+                  <div style="display: flex;align-items: center;">
+                    <span> <img style="margin-top: 6px;width: 16px;height: 16px;background-color: #000" :src="'src/assets/icons/'+value+'.png'" /> </span>
+                  </div>
+                </template>
+              </el-select>
+            </el-col>
+            <el-col :span="1">
+            </el-col>
+            <el-col :span="9">
+              <el-input  v-model="userSetting.providerModel" v-show="userSetting.llmEnabled"/>
+            </el-col>
+            <el-col :span="1">
+            </el-col>
+            <el-col :span="4" >
+              <el-button type="primary" v-show="userSetting.llmEnabled"  @click="this.showLLMTestDrawer = true">{{t('btn.test')}}</el-button>
+              <el-drawer v-model="this.showLLMTestDrawer" size="28%">
+                <el-form-item :label="t('userConfig.provider')">
+                  <el-col :span="8">
+                    <el-select v-model="userSetting.provider" >
+                      <el-option
+                          v-for="item in providers"
+                          :label="item.label"
+                          :value="item.value"
+                      >
+                      <div style="display: flex;align-items: center;">
+                        <el-image style="margin-right: 6px;width: 16px;height: 16px;background-color: #000" :src="'src/assets/icons/'+item.value+'.png'" />
+                        <span style="padding-left: 10px">{{ item.label }}</span>
+                      </div>
+                      </el-option>
+                      <template #label="{ label, value }">
+                        <div style="display: flex;align-items: center;">
+                          <span> <img style="margin-top: 6px;width: 16px;height: 16px;background-color: #000" :src="'src/assets/icons/'+value+'.png'" /> </span>
+                          <span style="font-weight: bold;padding-left: 10px">{{ label }}</span>
+                        </div>
+                      </template>
+                    </el-select>
+                  </el-col>
+                  <el-col :span="2" style="text-align: center">
+                    /
+                  </el-col>
+                  <el-col :span="14">
+                    <el-input v-model="userSetting.providerModel"/>
+                  </el-col>
+                </el-form-item>
+                <el-form-item :label="t('userConfig.providerkey')">
+                  <el-input v-model="userSetting.providerkey"/>
+                </el-form-item>
+                <el-form-item :label="t('userConfig.promt')" >
+                  <el-input
+                      v-model="userSetting.promt"
+                      :rows="8"
+                      type="textarea"
+                  />
+                </el-form-item>
+                <el-form-item :label="t('userConfig.data')" >
+                  <el-col :span="11">
+                    <el-input
+                        :rows="8"
+                        type="textarea"
+                        v-model="promptDebugInput"
+                        :placeholder="t('userConfig.promptDebugInput')"
+                    />
+                  </el-col>
+                  <el-col :span="2" style="display: flex;justify-content: space-evenly;">
+                    <el-icon v-if="!this.promptDebug"><DArrowRight /></el-icon>
+                    <el-icon v-else><Loading /></el-icon>
+                  </el-col>
+                  <el-col :span="11">
+                    <el-input
+                        :rows="8"
+                        type="textarea"
+                        :placeholder="t('userConfig.promptDebugOutput')"
+                        v-model="promptDebugOutPut"
+                    />
+                  </el-col>
+                </el-form-item>
+                <template #footer>
+                  <el-button type="primary" size="default" @click="this.promptDebugRun()">{{ t('btn.test') }}</el-button>
+                  <el-button  size="default" @click="this.showLLMTestDrawer=false">{{ t('btn.close') }}</el-button>
+                </template>
+              </el-drawer>
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-card v-show="userSetting.llmEnabled">
+          <el-form-item :label="t('userConfig.providerkey')">
+            <el-input v-model="userSetting.providerkey"/>
+          </el-form-item>
+          <el-form-item :label="t('userConfig.promt')">
+            <el-input
+                v-model="userSetting.promt"
+                :rows="8"
+                type="textarea"
+            />
+          </el-form-item>
+        </el-card>
+      </el-form>
+    </template>
+    <template #footer>
+      <el-button type="primary" size="default" @click="saveUserSetting">{{ t('btn.save') }}</el-button>
+      <el-button  size="default" @click="setting.showUserConfig=false">{{ t('btn.close') }}</el-button>
+    </template>
+  </el-drawer>
+</template>
+
+<script>
+import Constant from './common/constant.js';
+import {
+  ElAside,
+  ElButton,
+  ElContainer,
+  ElHeader,
+  ElInput,
+  ElLink,
+  ElMain,
+  ElMessage,
+  ElTable,
+  ElTableColumn,
+  ElTree
+} from 'element-plus';
+import BookmarkManager from "./common/bookmarkManager.js";
+import LLM_M from './common/llmutil.js';
+import { useI18n } from 'vue-i18n'
+import {nextTick, ref,toRaw} from 'vue';
+import Setting from "./common/userSetting.js";
+import Util from "./common/utils.js";
+import {Delete, Tools} from "@element-plus/icons-vue";
+
+let backgroundConn = null
+const InputRef = ref(null);
+export default {
+  name: 'App',
+  components: {
+    Delete,
+    Tools,
+    ElContainer,
+    ElAside,
+    ElHeader,
+    ElMain,
+    ElTable,
+    ElTableColumn,
+    ElTree,
+    ElLink,
+    ElInput,
+    ElButton,
+    ElMessage
+  },
+  setup() {
+    const { t, locale } = useI18n({
+      inheritLocale: true,
+      useScope: 'local'
+    })
+    return { t, locale }
+  },
+  data() {
+    let _this = this;
+    return {
+      userSetting: {},
+      providers:[
+        {
+          value: 'deepseek',
+          label: 'DeepSeek',
+        },
+        {
+          value: 'openai',
+          label: 'OpenAI',
+        },
+        {
+          value: 'anthropic',
+          label: 'Anthropic',
+        },
+        {
+          value: 'google',
+          label: 'Google',
+        },
+        {
+          value: 'mistral',
+          label: 'Mistral',
+        },
+        {
+          value: 'groq',
+          label: 'Groq',
+        },
+        {
+          value: 'together',
+          label: 'Together',
+        },{
+          value: 'perplexity',
+          label: 'Perplexity',
+        }
+      ],
+      setting: {
+        debug: import.meta.env.VITE_SETTING_DEBUG=='true',
+        editModel: import.meta.env.VITE_SETTING_EDITMODEL=='true',
+        showUserConfig: false,
+        crawlStatus: "0"
+      },
+      bookmarkStatus: [
+        {key: _this.t('bookmark.status_show.-99'), value: -99},
+        {key: _this.t('bookmark.status_show.-3'), value: -3},
+        {key: _this.t('bookmark.status_show.2'), value: 2},
+        {key: _this.t('bookmark.status_show.-2'), value: -2},
+        {key: _this.t('bookmark.status_show.-1'), value: -1},
+        {key: _this.t('bookmark.status_show.0'), value: 0},
+        {key: _this.t('bookmark.status_show.9'), value: 9},
+        {key: _this.t('bookmark.status_show.404'), value: 404},
+      ],
+      treeData: [{
+        id: 0,
+        tiltle: "书签"
+      }],
+      statistics: {
+        selectStatus: [],
+        "404": 0,
+        total: 0,
+        error: 0,
+        over: 0,
+        pending: 0,
+        change: 0,
+        show: 0
+      },
+      bookmarks: [],
+      searchQuery: {
+        prop: "all",
+        value: "",
+        options: [{
+          value: 'all',
+          label: _this.t('searchQuery.all')
+        }, {
+          value: 'tags',
+          label: _this.t('searchQuery.tags')
+        }, {
+          value: 'title',
+          label: _this.t('searchQuery.title')
+        }, {
+          value: 'metaTitle',
+          label: _this.t('searchQuery.metaTitle')
+        }, {
+          value: 'metaKeywords',
+          label: _this.t('searchQuery.metaKeywords')
+        }, {
+          value: 'metaDescription',
+          label: _this.t('searchQuery.metaDescription')
+        }, {
+          value: 'url',
+          label: _this.t('searchQuery.url')
+        }],
+      },
+      showDir:false,
+      showBookmarkDailog: false,
+      showBookmarkStatusDailog: false,
+      showLLMTestDrawer: false,
+      showContextMenu:false,
+      promptDebug:false,
+      promptDebugInput:"",
+      promptDebugOutPut:"",
+      menuLeft:0,
+      menuTop:0,
+      inputVisible: false,
+      inputValue: '',
+      lastQueryParam: {
+        prop: 'parentId',
+        operator: 'eq',
+        value: '1'
+      },
+      bookmark: {},
+      originalBookmark: {},
+      changeBookmarkStatus: {},
+      hoveredNode: null,
+      isDragging: false,
+      draggedBookmark: null,
+      isReordering: false,
+      dragOverFolder: null,
+      bookmarkRefs: new Map(),
+      dragObserver: null
+    };
+  },
+  methods: {
+    showTitle(data){
+      let title =  data.titleShow || data.title;
+      let url =  data.urlShow || data.url;
+      let str = title || url;
+      return str;
+    },
+    locationDir(data){
+      this.$refs.dirRef.setCurrentKey(data.parentId);
+      this.$nextTick(() => {
+        const nodeEl = document.querySelector(
+          `.el-tree-node[data-key="${data.parentId}"]`
+        );
+        if (nodeEl) {
+          // nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          nodeEl.scrollIntoView();
+        } else {
+
+        }
+      });
+      return;
+    },
+    promptDebugRun(){
+      let _this = this;
+      _this.promptDebug = true;
+      Setting.setSysConfig(this.userSetting).then( o => {
+        LLM_M.summarizeTags(this.promptDebugInput).then(value => {
+          _this.promptDebug = false;
+          _this.promptDebugOutPut = value;
+        });
+      });
+
+    },
+
+    setupDragForBookmark(element, data) {
+
+      if (!element || !this.setting.editModel) {
+
+        return;
+      }
+      
+      // 支持书签和文件夹的拖拽
+      if (data.type !== 'bookmark' && data.type !== 'folder') {
+
+        return;
+      }
+      
+      // 只有在查看特定文件夹时才允许拖拽调整顺序
+      const isInSpecificFolder = this.lastQueryParam && 
+                                this.lastQueryParam.prop === 'parentId' && 
+                                !this.searchQuery.value;
+      
+      if (!isInSpecificFolder) {
+
+        return;
+      }
+      
+
+      
+      // 设置拖拽属性
+      element.draggable = true;
+      element.style.cursor = 'move';
+      element.setAttribute('data-bookmark-id', data.id);
+      element.classList.add('bookmark-draggable');
+      
+      // 移除之前的事件监听器（避免重复绑定）
+      if (element._dragStartHandler) {
+        element.removeEventListener('dragstart', element._dragStartHandler);
+      }
+      if (element._dragEndHandler) {
+        element.removeEventListener('dragend', element._dragEndHandler);
+        element.removeEventListener('dragcancel', element._dragEndHandler);
+        element.removeEventListener('dragexit', element._dragEndHandler);
+      }
+      if (element._dragOverHandler) {
+        element.removeEventListener('dragover', element._dragOverHandler);
+      }
+      if (element._dragEnterHandler) {
+        element.removeEventListener('dragenter', element._dragEnterHandler);
+      }
+      if (element._dragLeaveHandler) {
+        element.removeEventListener('dragleave', element._dragLeaveHandler);
+      }
+      if (element._dropHandler) {
+        element.removeEventListener('drop', element._dropHandler);
+      }
+      if (element._mouseDownHandler) {
+        element.removeEventListener('mousedown', element._mouseDownHandler);
+      }
+      
+      // 创建事件处理器，使用箭头函数保持 this 上下文
+      element._dragStartHandler = (event) => {
+
+        event.stopPropagation(); // 防止事件冒泡
+        this.handleDragStart(event, data);
+      };
+      
+      element._dragEndHandler = (event) => {
+
+        this.handleDragEnd(event);
+      };
+      
+      // 添加鼠标按下事件来确保拖拽能够开始
+      element._mouseDownHandler = (event) => {
+
+        // 确保元素可以被拖拽
+        element.draggable = true;
+      };
+      
+      // 添加事件监听器
+      element.addEventListener('dragstart', element._dragStartHandler, { passive: false });
+      element.addEventListener('dragend', element._dragEndHandler, { passive: false });
+      element.addEventListener('mousedown', element._mouseDownHandler, { passive: false });
+      
+      // 添加拖拽取消监听器
+      element.addEventListener('dragcancel', element._dragEndHandler, { passive: false });
+      element.addEventListener('dragexit', element._dragEndHandler, { passive: false });
+      
+      // 添加拖拽悬停效果（支持书签和文件夹）
+      element._dragOverHandler = (event) => {
+        if (this.isDragging && this.draggedBookmark && this.draggedBookmark.id !== data.id) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.dataTransfer.dropEffect = 'move';
+          
+          // 添加悬停样式
+          element.classList.add('bookmark-drag-over');
+        }
+      };
+      
+      element._dragEnterHandler = (event) => {
+        if (this.isDragging && this.draggedBookmark && this.draggedBookmark.id !== data.id) {
+          event.preventDefault();
+          element.classList.add('bookmark-drag-over');
+        }
+      };
+      
+      element._dragLeaveHandler = (event) => {
+        // 检查是否真的离开了元素
+        if (!element.contains(event.relatedTarget)) {
+          element.classList.remove('bookmark-drag-over');
+        }
+      };
+      
+      element._dropHandler = (event) => {
+        event.preventDefault();
+        element.classList.remove('bookmark-drag-over');
+        
+        if (this.isDragging && this.draggedBookmark && this.draggedBookmark.id !== data.id) {
+          // 在同一父级内，根据组合列表（目录+书签）调整顺序
+          this.handleBookmarkDrop(event, data);
+        }
+      };
+      
+      element.addEventListener('dragover', element._dragOverHandler, { passive: false });
+      element.addEventListener('dragenter', element._dragEnterHandler, { passive: false });
+      element.addEventListener('dragleave', element._dragLeaveHandler, { passive: false });
+      element.addEventListener('drop', element._dropHandler, { passive: false });
+      
+
+    },
+    handleBookmarkDrop(event, targetItem) {
+      const itemType = this.draggedBookmark.type === 'folder' ? '文件夹' : '书签';
+      console.log(`${itemType}拖拽到${itemType}:`, this.draggedBookmark.title, '->', targetItem.title);
+      
+      if (!this.isDragging || !this.draggedBookmark || this.draggedBookmark.id === targetItem.id) {
+        return;
+      }
+      
+      // 防止重复触发
+      if (this.isReordering) {
+        console.log('正在重新排序，忽略重复操作');
+        return;
+      }
+      
+      // 确保在同一个文件夹内且类型相同
+      if (this.draggedBookmark.parentId !== targetItem.parentId) {
+        ElMessage({
+          message: this.t('tips.sameFolder') || '只能在同一文件夹内调整顺序',
+          type: 'warning',
+        });
+        return;
+      }
+      
+
+      
+      // 设置重新排序标志
+      this.isReordering = true;
+      
+      // 调整顺序
+      this.reorderItems(this.draggedBookmark, targetItem);
+    },
+
+    moveFolderToFolder(draggedFolder, targetFolder) {
+      const _this = this;
+      
+      // 防止重复触发
+      if (this.isReordering) {
+        console.log('正在移动文件夹，忽略重复操作');
+        return;
+      }
+      
+      // 防止将文件夹拖拽到自己的子文件夹中
+      if (targetFolder.treeId && targetFolder.treeId.includes(draggedFolder.id)) {
+        ElMessage({
+          message: this.t('tips.cannotMoveToChild') || '不能将文件夹移动到其子文件夹中',
+          type: 'warning',
+        });
+        return;
+      }
+      
+      // 设置移动标志
+      this.isReordering = true;
+      
+      // 更新文件夹的父文件夹
+      const updatedFolder = {
+        ...draggedFolder,
+        parentId: targetFolder.id,
+        syncChrome: false,
+        move: true,
+        index: 0 // 移动到目标文件夹的开头
+      };
+      
+      // 更新树路径信息
+      updatedFolder.treeId = targetFolder.treeId + "/" + targetFolder.id;
+      updatedFolder.treeName = targetFolder.treeName + "/" + targetFolder.title;
+      
+      console.log(`移动文件夹 "${draggedFolder.title}" 到 "${targetFolder.title}" 内部`);
+      
+      // 保存更改
+      BookmarkManager.saveBookmarks([updatedFolder]).then(() => {
+        ElMessage({
+          message: _this.t('tips.moveSuccess') || '移动成功',
+          type: 'success',
+        });
+        
+        // 重置标志
+        _this.isReordering = false;
+        
+        // 延迟重新加载页面
+        setTimeout(() => {
+          _this.reloadBookmarkPage();
+        }, 500);
+        
+      }).catch(error => {
+        console.error('移动文件夹失败:', error);
+        ElMessage({
+          message: _this.t('tips.moveFailed') || '移动失败',
+          type: 'error',
+        });
+        
+        // 重置标志
+        _this.isReordering = false;
+      });
+    },
+    reorderItems(draggedItem, targetItem) {
+      const _this = this;
+      const itemType = draggedItem.type === 'folder' ? '文件夹' : '书签';
+      
+      // 在同一父目录下，基于“全部子项（目录+书签）”的组合列表进行重排与统一重编号
+      const siblingsAll = this.bookmarks
+        .filter(b => b.parentId === draggedItem.parentId)
+        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      
+      // 定位拖拽项与目标项在组合列表中的位置
+      const draggedPosAll = siblingsAll.findIndex(b => b.id === draggedItem.id);
+      const targetPosAll = siblingsAll.findIndex(b => b.id === targetItem.id);
+      if (draggedPosAll === -1 || targetPosAll === -1) {
+        console.error(`找不到${itemType}位置`);
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 如果拖拽项与目标项相邻且是从前往后拖，不必调整
+      if (Math.abs(draggedPosAll - targetPosAll) <= 1 && draggedPosAll < targetPosAll) {
+        ElMessage({
+          message: _this.t('tips.samePosition') || '已在相同位置',
+          type: 'info',
+        });
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 在组合列表中移动拖拽项到目标项之前，仅改变受影响区间的顺序
+      const newOrderAll = [...siblingsAll];
+      const [draggedData] = newOrderAll.splice(draggedPosAll, 1);
+      let insertPosAll = targetPosAll;
+      if (draggedPosAll < targetPosAll) {
+        insertPosAll = targetPosAll - 1;
+      }
+      newOrderAll.splice(insertPosAll, 0, draggedData);
+      
+      // 统一为同一父目录的所有子项重编号，确保只影响需要移动的区间，整体相对顺序不变
+      const updatedItems = newOrderAll.map((item, index) => ({
+        ...item,
+        index,
+        syncChrome: false,
+        move: true
+      }));
+      
+      console.log(`重新排序: 将 "${draggedItem.title}" 移动到 "${targetItem.title}" 之前（按组合列表重排）`);
+      
+      // 保存所有更新的项目
+      BookmarkManager.saveBookmarks(updatedItems).then(() => {
+        ElMessage({
+          message: _this.t('tips.reorderSuccess') || '调整顺序成功',
+          type: 'success',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+        
+        // 延迟重新加载页面
+        setTimeout(() => {
+          _this.reloadBookmarkPage();
+        }, 500);
+        
+      }).catch(error => {
+        console.error(`调整${itemType}顺序失败:`, error);
+        ElMessage({
+          message: _this.t('tips.reorderFailed') || '调整顺序失败',
+          type: 'error',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+      });
+    },
+    reorderBookmarks(draggedBookmark, targetBookmark) {
+      const _this = this;
+      
+      // 获取当前文件夹中的所有书签，按index排序
+      const folderBookmarks = this.bookmarks.filter(b => 
+        b.type === 'bookmark' && b.parentId === draggedBookmark.parentId
+      ).sort((a, b) => (a.index || 0) - (b.index || 0));
+      
+      console.log('当前文件夹书签顺序:', folderBookmarks.map(b => `${b.title}(${b.index})`));
+      
+      // 找到拖拽书签和目标书签在排序后数组中的位置
+      const draggedPos = folderBookmarks.findIndex(b => b.id === draggedBookmark.id);
+      const targetPos = folderBookmarks.findIndex(b => b.id === targetBookmark.id);
+      
+      if (draggedPos === -1 || targetPos === -1) {
+        console.error('找不到书签位置');
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 如果拖拽到相邻位置，不做操作
+      if (Math.abs(draggedPos - targetPos) <= 1 && draggedPos < targetPos) {
+        ElMessage({
+          message: _this.t('tips.samePosition') || '已在相同位置',
+          type: 'info',
+        });
+        _this.isReordering = false;
+        return;
+      }
+      
+      // 重新排列数组：移除拖拽的书签，插入到目标位置之前
+      const newOrder = [...folderBookmarks];
+      const [draggedItem] = newOrder.splice(draggedPos, 1);
+      
+      // 计算插入位置（目标书签之前）
+      let insertPos = targetPos;
+      if (draggedPos < targetPos) {
+        // 从前往后拖拽时，目标位置需要减1（因为已经移除了一个元素）
+        insertPos = targetPos - 1;
+      }
+      
+      newOrder.splice(insertPos, 0, draggedItem);
+      
+      console.log('新的书签顺序:', newOrder.map(b => b.title));
+      
+      // 更新所有书签的索引
+      const updatedBookmarks = newOrder.map((bookmark, index) => ({
+        ...bookmark,
+        index: index,
+        syncChrome: false,
+        move: true
+      }));
+      
+      console.log(`重新排序: 将 "${draggedBookmark.title}" 移动到 "${targetBookmark.title}" 之前`);
+      
+      // 保存所有更新的书签
+      BookmarkManager.saveBookmarks(updatedBookmarks).then(() => {
+        ElMessage({
+          message: _this.t('tips.reorderSuccess') || '调整顺序成功',
+          type: 'success',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+        
+        // 延迟重新加载页面
+        setTimeout(() => {
+          _this.reloadBookmarkPage();
+        }, 500);
+        
+      }).catch(error => {
+        console.error('调整书签顺序失败:', error);
+        ElMessage({
+          message: _this.t('tips.reorderFailed') || '调整顺序失败',
+          type: 'error',
+        });
+        
+        // 重置重新排序标志
+        _this.isReordering = false;
+      });
+    },
+    handleMouseOver(data) {
+      // 鼠标悬浮时，记录当前节点的 ID
+      this.hoveredNode = data.id;
+    },
+    handleDragStart(event, data) {
+
+      
+      if (!this.setting.editModel || (data.type !== 'bookmark' && data.type !== 'folder')) {
+
+        event.preventDefault();
+        return false;
+      }
+      
+      // 防止文本选中
+      document.body.classList.add('dragging-active');
+      
+
+      
+      this.isDragging = true;
+      this.draggedBookmark = data;
+      
+      // 设置拖拽数据
+      const dragData = {
+        id: data.id,
+        type: data.type,
+        title: data.title,
+        url: data.url,
+        parentId: data.parentId
+      };
+      
+
+      
+      try {
+        event.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+        event.dataTransfer.effectAllowed = 'move';
+
+      } catch (error) {
+        console.error('设置拖拽图像失败:', error);
+      }
+      
+      // 添加拖拽样式
+      const bookmarkRow = event.target.closest('.el-row') || event.currentTarget;
+      if (bookmarkRow) {
+
+        bookmarkRow.classList.add('dragging');
+        bookmarkRow.style.opacity = '0.5';
+        bookmarkRow.style.transform = 'rotate(2deg)';
+      } else {
+
+      }
+      
+      // 创建拖拽图像（可选）
+      const dragImage = document.createElement('div');
+      const icon = data.type === 'folder' ? '📁' : '📖';
+      dragImage.textContent = `${icon} ${data.title}`;
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-1000px';
+      dragImage.style.padding = '4px 8px';
+      dragImage.style.backgroundColor = '#409eff';
+      dragImage.style.color = 'white';
+      dragImage.style.borderRadius = '4px';
+      dragImage.style.fontSize = '12px';
+      document.body.appendChild(dragImage);
+      
+      try {
+        event.dataTransfer.setDragImage(dragImage, 0, 0);
+      } catch (error) {
+        console.error('解析拖拽数据失败:', error);
+      }
+      
+      setTimeout(() => {
+        if (document.body.contains(dragImage)) {
+          document.body.removeChild(dragImage);
+        }
+      }, 0);
+      
+
+      return true;
+    },
+    handleDragEnd(event) {
+
+      
+      // 重置所有拖拽状态
+      this.isDragging = false;
+      this.draggedBookmark = null;
+      this.dragOverFolder = null;
+      this.isReordering = false;
+      
+      // 恢复文本选择
+      document.body.classList.remove('dragging-active');
+      
+      // 恢复所有可能的拖拽样式 - 使用更广泛的选择器
+      const allRows = document.querySelectorAll('#bookmarkList .bookmark-row-compact, #bookmarkList [data-bookmark-type="bookmark"], #bookmarkList [data-bookmark-type="folder"]');
+      allRows.forEach(row => {
+        row.style.opacity = '';
+        row.style.transform = '';
+        row.classList.remove('dragging');
+        // 移除任何可能的拖拽相关属性
+        row.style.removeProperty('opacity');
+        row.style.removeProperty('transform');
+      });
+      
+      // 清除所有文件夹的拖拽悬停状态
+      const allFolders = document.querySelectorAll('.folder-drop-zone-wrapper');
+      allFolders.forEach(folder => {
+        folder.classList.remove('drag-over');
+      });
+      
+      // 清除所有书签的拖拽悬停状态
+      const allBookmarkRows = document.querySelectorAll('.bookmark-drag-over');
+      allBookmarkRows.forEach(row => {
+        row.classList.remove('bookmark-drag-over');
+      });
+      
+
+    },
+    resetDragState() {
+
+      
+      // 重置所有拖拽状态
+      this.isDragging = false;
+      this.draggedBookmark = null;
+      this.dragOverFolder = null;
+      
+      // 恢复文本选择
+      document.body.classList.remove('dragging-active');
+      
+      // 恢复所有可能的拖拽样式 - 使用更广泛的选择器
+      const allRows = document.querySelectorAll('#bookmarkList .bookmark-row-compact, #bookmarkList [data-bookmark-type="bookmark"], #bookmarkList [data-bookmark-type="folder"]');
+      allRows.forEach(row => {
+        row.style.opacity = '';
+        row.style.transform = '';
+        row.classList.remove('dragging');
+        // 移除任何可能的拖拽相关属性
+        row.style.removeProperty('opacity');
+        row.style.removeProperty('transform');
+      });
+      
+      // 清除所有文件夹的拖拽悬停状态
+      const allFolders = document.querySelectorAll('.folder-drop-zone-wrapper');
+      allFolders.forEach(folder => {
+        folder.classList.remove('drag-over');
+      });
+      
+      // 清除所有书签的拖拽悬停状态
+      const allBookmarkRows = document.querySelectorAll('.bookmark-drag-over');
+      allBookmarkRows.forEach(row => {
+        row.classList.remove('bookmark-drag-over');
+      });
+      
+
+    },
+    handleFolderDragOver(event) {
+      if (this.isDragging && this.draggedBookmark) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = 'move';
+        
+        // 确保拖拽悬停状态
+        const wrapper = event.currentTarget;
+        const folderId = wrapper.getAttribute('data-folder-id');
+        if (folderId && this.dragOverFolder !== folderId) {
+          this.dragOverFolder = folderId;
+
+        }
+      }
+    },
+    handleFolderDragLeave(event) {
+      // 延迟清除，避免在子元素间移动时闪烁
+      setTimeout(() => {
+        if (!event.relatedTarget || !event.currentTarget || !event.currentTarget.contains(event.relatedTarget)) {
+
+          this.dragOverFolder = null;
+        }
+      }, 100);
+    },
+    handleFolderDrop(event, folderData) {
+      ;
+      
+      event.preventDefault();
+      this.dragOverFolder = null;
+      
+      if (!this.isDragging || !this.draggedBookmark) {
+
+        return;
+      }
+      
+      // 检查是否拖拽到同一个父文件夹
+      if (this.draggedBookmark.id === folderData.id
+        || this.draggedBookmark.parentId === folderData.id
+        ||  this.draggedBookmark.id === folderData.parentId
+      ) {
+
+        this.$message.info(this.t('tips.sameFolder'));
+        return;
+      }
+      
+      const dragData = event.dataTransfer?.getData('text/plain');
+
+      
+      if (!dragData) {
+
+        return;
+      }
+      
+      try {
+        
+        const itemData = JSON.parse(dragData);
+
+
+        
+        if (itemData.type === 'bookmark' && folderData.type === 'folder') {
+
+          this.moveBookmarkToFolder(itemData, folderData);
+        } else if (itemData.type === 'folder' && folderData.type === 'folder') {
+          // 文件夹拖拽到左侧目录树：更换父目录
+          console.log('文件夹拖拽到左侧目录树，更换父目录');
+          this.moveFolderToFolder(itemData, folderData);
+        } else {
+
+        }
+      } catch (error) {
+        console.error('解析拖拽数据失败:', error);
+      }
+    },
+    allowDrop(draggingNode, dropNode, type) {
+      ;
+      // 只允许拖拽到文件夹内部
+      return type === 'inner' && dropNode.data.type === 'folder';
+    },
+    handleNodeDrop(draggingNode, dropNode, dropType, ev) {
+      // 这个方法处理外部拖拽到树节点的情况
+      const dragData = ev.dataTransfer?.getData('text/plain');
+      if (!dragData) return;
+      ;
+      try {
+        const bookmarkData = JSON.parse(dragData);
+        if (bookmarkData.type === 'bookmark' && dropNode.data.type === 'folder') {
+          this.moveBookmarkToFolder(bookmarkData, dropNode.data);
+        }
+      } catch (error) {
+        console.error('处理节点拖拽失败:', error);
+      }
+    },
+    moveBookmarkToFolder(bookmarkData, targetFolder) {
+      const _this = this;
+      
+      // 找到要移动的书签
+      const bookmark = _this.bookmarks.find(b => b.id === bookmarkData.id);
+      if (!bookmark) {
+        ElMessage({
+          message: _this.t('tips.bookmarkNotFound') || '未找到书签',
+          type: 'error',
+        });
+        return;
+      }
+      
+      // 检查是否移动到相同文件夹
+      if (bookmark.parentId === targetFolder.id) {
+        ElMessage({
+          message: _this.t('tips.sameFolder') || '书签已在该文件夹中',
+          type: 'warning',
+        });
+        return;
+      }
+      
+      // 更新书签的父文件夹
+      bookmark.parentId = targetFolder.id;
+      bookmark.syncChrome = false;
+      bookmark.move = true;
+      bookmark.index = 0; // 移动到目标文件夹的开头
+      
+      // 更新树路径信息
+      bookmark.treeId = targetFolder.treeId + "/" + targetFolder.id;
+      bookmark.treeName = targetFolder.treeName + "/" + targetFolder.title;
+      
+      // 保存更改
+      BookmarkManager.saveBookmarks([bookmark]).then(() => {
+        ElMessage({
+          message: _this.t('tips.moveSuccess') || '移动成功',
+          type: 'success',
+        });
+        // 刷新页面数据
+        _this.reloadBookmarkPage();
+      }).catch(error => {
+        console.error('移动书签失败:', error);
+        ElMessage({
+          message: _this.t('tips.moveFailed') || '移动失败',
+          type: 'error',
+        });
+      });
+    },
+    setupAllBookmarksDrag() {
+
+      
+      if (!this.setting.editModel) {
+
+        return;
+      }
+      
+      // 只有在查看特定文件夹时才允许拖拽调整顺序
+      // 检查是否在特定文件夹中（parentId查询且不是搜索状态）
+      const isInSpecificFolder = this.lastQueryParam && 
+                                this.lastQueryParam.prop === 'parentId' && 
+                                !this.searchQuery.value;
+      
+      if (!isInSpecificFolder) {
+
+        return;
+      }
+      
+      // 使用 MutationObserver 监听 DOM 变化，确保虚拟滚动的元素都被处理
+      const setupDragWithObserver = () => {
+        const treeContainer = document.querySelector('#bookmarkList');
+        if (!treeContainer) {
+
+          setTimeout(setupDragWithObserver, 100);
+          return;
+        }
+        
+        // 立即设置当前可见的书签
+        this.setupVisibleBookmarksDrag();
+        
+        // 创建 MutationObserver 来监听新渲染的书签行
+        if (this.dragObserver) {
+          this.dragObserver.disconnect();
+        }
+        
+        this.dragObserver = new MutationObserver((mutations) => {
+          let hasNewBookmarkRows = false;
+          mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                // 检查是否有新的书签或文件夹行
+                const newItemRows = node.querySelectorAll ? 
+                  node.querySelectorAll('[data-bookmark-type="bookmark"], [data-bookmark-type="folder"]') : [];
+                if (newItemRows.length > 0 || 
+                    (node.getAttribute && (node.getAttribute('data-bookmark-type') === 'bookmark' || 
+                     node.getAttribute('data-bookmark-type') === 'folder'))) {
+                  hasNewBookmarkRows = true;
+                }
+              }
+            });
+          });
+          
+          if (hasNewBookmarkRows) {
+
+            setTimeout(() => this.setupVisibleBookmarksDrag(), 50);
+          }
+        });
+        
+        this.dragObserver.observe(treeContainer, {
+          childList: true,
+          subtree: true
+        });
+        
+
+      };
+      
+      // 延迟执行以确保虚拟滚动组件已渲染
+      setTimeout(setupDragWithObserver, 200);
+    },
+    
+    setupVisibleBookmarksDrag() {
+      if (!this.setting.editModel) {
+        return;
+      }
+      
+
+      
+      const treeContainer = document.querySelector('#bookmarkList');
+      if (!treeContainer) {
+
+        return;
+      }
+      
+      // 检查是否在特定文件夹中
+      const isInSpecificFolder = this.lastQueryParam && 
+                                this.lastQueryParam.prop === 'parentId' && 
+                                !this.searchQuery.value;
+      
+      // 查找所有可见的书签和文件夹行元素
+      const bookmarkRows = treeContainer.querySelectorAll('[data-bookmark-type="bookmark"], [data-bookmark-type="folder"]');
+
+      
+      bookmarkRows.forEach((row) => {
+        // 如果不在特定文件夹中，清理拖拽设置
+        if (!isInSpecificFolder) {
+          if (row.hasAttribute('data-drag-setup')) {
+            row.removeAttribute('data-drag-setup');
+            row.draggable = false;
+            row.style.cursor = '';
+            row.classList.remove('bookmark-draggable');
+          }
+          return;
+        }
+        
+        // 检查是否已经设置过拖拽
+        if (row.hasAttribute('data-drag-setup')) {
+          return;
+        }
+        
+        const itemId = row.getAttribute('data-bookmark-id');
+        const item = this.bookmarks.find(b => b.id === itemId);
+        
+        if (item && (item.type === 'bookmark' || item.type === 'folder')) {
+
+          this.setupDragForBookmark(row, item);
+          row.setAttribute('data-drag-setup', 'true');
+        }
+      });
+    },
+    initConnect(){
+      let _this = this;
+      backgroundConn = chrome.runtime.connect({ name: "index-background-connection" });
+      backgroundConn.onDisconnect.addListener(() => {
+
+        _this.initConnect();
+      });
+      backgroundConn.onMessage.addListener(async function (result) {
+        // 使用 `_this` 代替 `this`
+        if (result.action === Constant.PAGE_EVENT.QUERY_FOLDER) {
+          _this.treeData = result.datas;
+        } else if (result.action === Constant.PAGE_EVENT.STOP_CRAWL_META_ACK) {
+          _this.setting.crawlStatus = "0";
+          _this.reloadBookmarkPage();
+        } else if (result.action === Constant.PAGE_EVENT.QUERY_BOOKMARKS) {
+          _this.bookmarks = result.datas;
+          if (_this.setting.editModel) {
+            var selectIds = [];
+            if (_this.statistics.selectStatus.includes(-3)) {
+              let map = {};
+              for (let bm of _this.bookmarks) {
+                let url =  bm.url?bm.url.replace(/(http|https):\/\//g, ''):"";
+                if (map[url]) {
+                  selectIds.push(bm.id);
+                } else {
+                  map[url] = bm.id;
+                }
+              }
+            }else if(_this.statistics.selectStatus.includes(-1)){
+              selectIds = _this.bookmarks.map(data => data.id);
+            }
+            setTimeout(() => {
+              if(selectIds){
+                _this.$refs.bookmarkList.setCheckedKeys(selectIds);
+              }
+              // 重新设置拖拽功能
+
+              _this.setupAllBookmarksDrag();
+            }, 300)
+
+          } else {
+            // 即使不在编辑模式，也需要等待DOM更新后再设置拖拽
+            setTimeout(() => {
+
+              _this.setupAllBookmarksDrag();
+            }, 300);
+          }
+          _this.statistics.show = result.datas.length;
+        } else if (result.action === Constant.PAGE_EVENT.ALERT_MSG) {
+          ElMessage({
+            message: result.msg,
+            type: 'error',
+          });
+        } else if (result.action === Constant.PAGE_EVENT.DOWNLOAD_BOOKMARKS) {
+          for (let i = result.datas.length - 1; i >= 0; i--) {
+            delete result.datas[i].id;
+          }
+          let newJsonString = JSON.stringify(result.datas, null, 2);
+          // 创建 Blob 对象
+          var blob = new Blob([newJsonString], {type: 'application/json'});
+          // 创建下载链接
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'data.json';
+          a.click();
+        } else if (result.action === Constant.PAGE_EVENT.SAVE_TO_D1) {
+          LLM_M.summarizeTags(JSON.stringify(result.datas[0]));
+        }  else if (result.action === Constant.PAGE_EVENT.RELOAD_PAGE) {
+          _this.reloadBookmarkPage();
+        } else if (result.action === Constant.PAGE_EVENT.STATISTICS_TOTAL) {
+          const { datas } = result;
+          const stat = {
+            total: datas.length,
+            error: 0,
+            "404": 0,
+            same: 0,
+            over: 0,
+            change: 0,
+            pending: 0
+          };
+          let treeData = [];
+          let map =  datas.reduce((acc, data) => {
+            acc[data.id] = data;
+            if (data.type === 'folder') {
+              data.childrenCount = 0;
+              treeData.push(data);
+            }
+            return acc;
+          }, {});
+
+          let inputArr = [];
+          for (const data of datas) {
+            map[data.id] = data;
+            if (map[data.parentId] != null) {
+              map[data.parentId].childrenCount += 1;
+            }
+            if (data.type === 'folder'){
+              continue;
+            }
+            if(inputArr.length<_this.userSetting.maxSummarizeTags && data.url && data.url.startsWith("http")){
+              inputArr.push(data);
+            }
+            switch (data.status) {
+              case -1: stat.error++; break;
+              case 2:
+              case 9: stat.over++; break;
+              case -2: stat.change++; break;
+              case -3: stat.same++; break;
+              case 404: stat["404"]++;break;
+              case 0:
+                if(data.url && data.url.startsWith('http')){
+
+                  stat.pending++;
+                }
+                break;
+            }
+          }
+
+          _this.promptDebugInput = JSON.stringify(inputArr, ['id','title','url','domainTitle','metaKeywords','metaDescription','metaTags'], 2);
+          _this.statistics = { ..._this.statistics, ...stat }
+          _this.treeData = Util.getRootTree(treeData);
+        }
+      });
+
+
+    },
+    handleClose(tag) {
+      this.bookmark.tags.splice(this.bookmark.tags.indexOf(tag), 1)
+    },
+    showInput() {
+      this.inputVisible = true;
+      nextTick(() => {
+        if (this.$refs.InputRef) {
+          this.$refs.InputRef.input.focus(); // 调用 InputRef 并聚焦
+        }
+      })
+    },
+    handleInputConfirm() {
+      if (!Array.isArray(this.bookmark.tags)) {
+        this.bookmark.tags = [];
+      }
+      if (this.inputValue) {
+        this.bookmark.tags.push(this.inputValue)
+      }
+      this.inputVisible = false
+      this.inputValue = ''
+    },
+    saveUserSetting() {
+      const _this = this;
+      Setting.setSysConfig(this.userSetting);
+      LLM_M.clear();
+      ElMessage({
+        message: _this.t('tips.modifyUserSuccess'),
+        type: 'success',
+      });
+      this.setting.showUserConfig = false;
+    },
+    saveBookmark() {
+      const _this = this;
+      if (!_this.bookmark.tags) {
+        _this.bookmark.tags = [];
+      }
+      if (_this.bookmark.title != _this.originalBookmark.title
+          || _this.bookmark.url != _this.originalBookmark.url) {
+        _this.bookmark.syncChrome = false;
+      }
+      BookmarkManager.saveBookmarks([_this.bookmark]).then(() => {
+        ElMessage({
+          message: _this.t('tips.success'),
+          type: 'success',
+        })
+        _this.reloadBookmarkPage();
+        _this.showBookmarkDailog = false;
+        _this.bookmark = {};
+        _this.originalBookmark = {};
+      })
+    },
+    editBookmark(data) {
+      if(data){
+        this.bookmark = {...data};
+        this.originalBookmark = {...data}
+      }
+      this.showBookmarkDailog = true;
+    },
+    closeLLMTestDrawer(){
+      this.showLLMTestDrawer = false;
+    },
+    closeBookmarkDialog() {
+      this.showBookmarkDailog = false;
+    },
+    getFaviconUrl(siteUrl) {
+      const url = new URL(chrome.runtime.getURL("/_favicon/"));
+      url.searchParams.set("pageUrl", siteUrl);
+      url.searchParams.set("size", "16");
+      return url.toString();
+    },
+    handleRightClick(event, data, node){
+      this.showContextMenu = true;
+      this.menuLeft = event.clientX;
+      this.menuTop = event.clientY;
+      this.bookmark = {...data};
+      this.originalBookmark = {...data}
+      document.addEventListener('click', this.closeContextMenu)
+    },
+    closeContextMenu(){
+      this.showContextMenu = false
+      document.removeEventListener('click', this.closeContextMenu)
+    },
+    moveBookMarkDir(draggingNode, dropNode, dropType, ev) {
+      //共四个参数，依次为：被拖拽节点对应的 Node、结束拖拽时最后进入的节点（可能为空）、被拖拽节点的放置位置（before、after、inner）、event
+      //dropNode.parent.data  父节点
+      //dropNode.data  当前节点
+      // let bookmarks = [];
+      // let result = [];
+      // let bookmark = draggingNode.data;
+      // bookmark.syncChrome = false;
+      // bookmark.move = true;
+      // if (dropType == 'inner') {
+      //   bookmark.parentId = dropNode.data.id;
+      //   bookmark.index = 0;
+      //   bookmarks = dropNode.data.children;
+      // } else if (dropType == 'before') {
+      //   bookmark.parentId = dropNode.data.parentId;
+      //   bookmark.index = dropNode.data.index - 1;
+      //   bookmarks = dropNode.parent.data.children;
+      // } else if (dropType == 'after') {
+      //   bookmark.parentId = dropNode.data.parentId;
+      //   bookmark.index = dropNode.data.index + 1;
+      // }
+      // if (bookmark.index < 0) {
+      //   bookmark.index = 0;
+      //
+      //   for (let i = 0; i < bookmarks.length; i++) {
+      //     if (bookmarks[i].type == "folder") {
+      //       bookmarks[i].index = bookmarks[i].index + 1;
+      //       bookmarks[i].syncChrome = false;
+      //       bookmarks[i].move = true;
+      //       result.push(bookmarks[i]);
+      //     }
+      //   }
+      // }
+      // result.push(bookmark);
+      // BookmarkManager.saveBookmarks(result);
+    },
+    queryByDir(data) {
+      let _this = this;
+      _this.showContextMenu = false;
+      
+      // 清空搜索关键字与搜索状态，切换为目录查询场景
+      if (_this.searchQuery) {
+        _this.searchQuery.value = '';
+        // 可选：恢复默认搜索属性
+        if (_this.searchQuery.prop === undefined || _this.searchQuery.prop === null) {
+          _this.searchQuery.prop = 'title';
+        }
+      }
+      if (_this.statistics && Array.isArray(_this.statistics.selectStatus)) {
+        _this.statistics.selectStatus = [];
+      }
+      _this.showDir = false;
+      
+      
+      // 清空搜索关键字与搜索状态，切换为目录查询场景
+      if (_this.searchQuery) {
+        _this.searchQuery.value = '';
+        // 可选：恢复默认搜索属性
+        if (_this.searchQuery.prop === undefined || _this.searchQuery.prop === null) {
+          _this.searchQuery.prop = 'title';
+        }
+      }
+      if (_this.statistics && Array.isArray(_this.statistics.selectStatus)) {
+        _this.statistics.selectStatus = [];
+      }
+      _this.showDir = false;
+      
+      _this.lastQueryParam = {
+        prop: 'parentId',
+        operator: 'eq',
+        value: data.id
+      }
+      backgroundConn.postMessage({
+        action: Constant.PAGE_EVENT.QUERY_BOOKMARKS,
+        ..._this.lastQueryParam
+      });
+    },
+    reloadBookMark(){
+      const _this = this;
+      backgroundConn.postMessage({
+        action: Constant.PAGE_EVENT.RELOAD_BOOKMARK
+      });
+    },
+    crawlMeta() {
+      const _this = this;
+      Setting.getSysConfig().then(config => {
+        if (config.llmEnabled && Util.hasEmptyProperty(config)) {
+          ElMessage({
+            message: _this.t('tips.modifyUserFirst'),
+            type: 'error',
+          });
+          return;
+        }
+        _this.setting.crawlStatus = "1";
+        backgroundConn.postMessage({
+          action: Constant.PAGE_EVENT.CRAWL_META,
+          prop: 'type',
+          operator: 'eq',
+          value: 'bookmark'
+        });
+      })
+
+    },
+    stopCrawlMeta() {
+      this.setting.crawlStatus = "0";
+      backgroundConn.postMessage({
+        action: Constant.PAGE_EVENT.STOP_CRAWL_META
+      });
+    },
+    searchBookmarks() {
+      let _this = this;
+      _this.showDir = !_this.searchQuery.value==''
+      _this.statistics.selectStatus = [];
+      _this.lastQueryParam = {
+        prop: _this.searchQuery.prop,
+        operator: 'like',
+        value: _this.searchQuery.value
+      };
+      backgroundConn.postMessage({
+        action: Constant.PAGE_EVENT.QUERY_BOOKMARKS,
+        ..._this.lastQueryParam
+      });
+    },
+    searchStatisticsBookmarks(param) {
+      let status = [];
+      status.push(param.value);
+      this.statistics.selectStatus = status;
+      this.lastQueryParam = param;
+      backgroundConn.postMessage({action: Constant.PAGE_EVENT.QUERY_BOOKMARKS, ...param});
+    },
+    downLoadBookmarks() {
+      backgroundConn.postMessage({
+        action: Constant.PAGE_EVENT.DOWNLOAD_BOOKMARKS,
+        prop: 'id',
+        operator: 'gt',
+        value: -1
+      });
+    },
+    handleFileUpload(file) {
+      const _this = this;
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const bookmarks = JSON.parse(e.target.result);
+          BookmarkManager.uploadBookMarks(bookmarks).then(() => {
+            ElMessage({
+              message: '上传成功!',
+              type: 'success',
+            });
+            setTimeout(() => _this.reloadBookmarkPage(), 1000);
+          })
+        } catch (error) {
+          console.error('解析书签文件失败:', error);
+          ElMessage({
+            message: '解析书签失败!',
+            type: 'error',
+          });
+        }
+      }
+      reader.readAsText(file.raw)
+    },
+    handleEditModelChange(value){
+
+      Util.setLocalStorageItem(Constant.ENV.SYS_PAGE_CONFIG,value);
+      
+      // 清理之前的观察器
+      if (this.dragObserver) {
+        this.dragObserver.disconnect();
+        this.dragObserver = null;
+      }
+      
+      // 清理所有现有的拖拽设置
+      const allRows = document.querySelectorAll('[data-drag-setup="true"]');
+      allRows.forEach(row => {
+        row.removeAttribute('data-drag-setup');
+        row.draggable = false;
+        row.style.cursor = '';
+        row.classList.remove('bookmark-draggable');
+      });
+      
+      // 当编辑模式改变时，重新设置拖拽功能
+      if (value) {
+        setTimeout(() => {
+
+          this.setupAllBookmarksDrag();
+        }, 200);
+      } else {
+
+      }
+    },
+    reloadBookmarkPage() {
+      let _this = this;
+      
+      // 清理拖拽引用和观察器
+      _this.bookmarkRefs.clear();
+      if (_this.dragObserver) {
+        _this.dragObserver.disconnect();
+        _this.dragObserver = null;
+      }
+      
+      // 清理所有现有的拖拽设置
+      const allRows = document.querySelectorAll('[data-drag-setup="true"]');
+      allRows.forEach(row => {
+        row.removeAttribute('data-drag-setup');
+        row.draggable = false;
+        row.style.cursor = '';
+        row.classList.remove('bookmark-draggable');
+      });
+      
+      backgroundConn.postMessage({
+        action: Constant.PAGE_EVENT.QUERY_BOOKMARKS,
+        ..._this.lastQueryParam
+      });
+      backgroundConn.postMessage({
+        action: Constant.PAGE_EVENT.STATISTICS_TOTAL,
+        prop: 'id',
+        operator: 'gt',
+        value: '0'
+      });
+    },
+    showBookmarkStatus() {
+      const _this = this;
+      let datas = _this.$refs.bookmarkList.getCheckedNodes();
+      if (datas && datas.length > 0) {
+        _this.showBookmarkStatusDailog = true;
+      } else {
+        ElMessage({
+          message: _this.t('tips.select'),
+          type: 'error',
+        });
+      }
+    },
+    syncUrl(){
+      const _this = this;
+      let datas = _this.$refs.bookmarkList.getCheckedNodes();
+      if (datas && datas.length > 0) {
+        for (const bm of datas) {
+          if(bm.status == -2){
+            bm.syncChrome = false;
+            bm.url = bm.currentUrl;
+            bm.domain = bm.currentDomain;
+            bm.status = 0;
+          }
+        }
+        BookmarkManager.saveBookmarks(datas).then(() => {
+          _this.showBookmarkStatusDailog = false;
+          ElMessage({
+            message: _this.t('tips.success'),
+            type: 'success',
+          });
+          _this.reloadBookmarkPage();
+        })
+      } else {
+        ElMessage({
+          message: _this.t('tips.select'),
+          type: 'error',
+        });
+      }
+    },
+    saveBookmarkStatus() {
+      const _this = this;
+      let datas = _this.$refs.bookmarkList.getCheckedNodes();
+      if (datas && datas.length > 0) {
+        for (const bm of datas) {
+          if(_this.changeBookmarkStatus.status){
+            bm.status = _this.changeBookmarkStatus.status;
+          }
+          if(_this.changeBookmarkStatus.parentId){
+            bm.syncChrome = false;
+            bm.move = true;
+            bm.parentId = _this.changeBookmarkStatus.parentId;
+          }
+        }
+        BookmarkManager.saveBookmarks(datas).then(() => {
+          _this.showBookmarkStatusDailog = false;
+          ElMessage({
+            message: _this.t('tips.success'),
+            type: 'success',
+          });
+          _this.reloadBookmarkPage();
+        })
+      } else {
+        ElMessage({
+          message: _this.t('tips.select'),
+          type: 'error',
+        });
+      }
+    },
+    handleCheckAll(val) {
+      let _this = this;
+      if (val) {
+        this.$refs.bookmarkList.setCheckedKeys(_this.bookmarks.map(data => data.id))
+      } else {
+        this.$refs.bookmarkList.setCheckedKeys([])
+      }
+    },
+    removeBookmark(data) {
+      const _this = this;
+      if(!data){
+        data = this.originalBookmark;
+      }
+      BookmarkManager.deleteBookmarks([{...data, syncChrome: false}]).then(() => {
+        ElMessage({
+          message: _this.t('tips.success'),
+          type: 'success',
+        });
+        _this.reloadBookmarkPage();
+      })
+    },
+    removeAllCheck() {
+      const _this = this;
+      let datas = _this.$refs.bookmarkList.getCheckedNodes().map(node => toRaw(node));
+      if(datas && datas.length > 0){
+        BookmarkManager.deleteBookmarks(datas).then(() => {
+          ElMessage({
+            message: _this.t('tips.success'),
+            type: 'success',
+          });
+          _this.reloadBookmarkPage();
+        })
+      }else{
+        ElMessage({
+          message: _this.t('tips.select'),
+          type: 'error',
+        });
+      }
+
+    },
+    openUrl(data) {
+      window.open(data.url, '_blank');
+    }
+  },
+  mounted() {
+
+
+    const _this = this;
+    _this.initConnect();
+    Setting.getSysConfig().then(config => {
+      _this.userSetting = config;
+
+    });
+    Util.getLocalStorageItem(Constant.ENV.SYS_PAGE_CONFIG).then(config => {
+      _this.setting.editModel = config;
+
+    })
+    Util.getLocalStorageItem(Constant.ENV.SYS_CRAWL_STATUS).then(config => {
+      if (config == undefined) {
+        config = "0";
+        Util.setLocalStorageItem(Constant.ENV.SYS_CRAWL_STATUS,"0");
+      }
+      _this.setting.crawlStatus = config;
+    })
+    _this.reloadBookmarkPage();
+    
+    // 延迟设置拖拽功能，确保所有数据都已加载
+    setTimeout(() => {
+
+      _this.setupAllBookmarksDrag();
+    }, 1000);
+    
+    // 添加全局拖拽状态重置监听器
+    _this.globalDragEndHandler = () => {
+
+      _this.resetDragState();
+    };
+    document.addEventListener('dragend', _this.globalDragEndHandler);
+    
+    // 添加ESC键监听器来取消拖拽
+    _this.globalKeyHandler = (event) => {
+      if (event.key === 'Escape' && _this.isDragging) {
+
+        _this.resetDragState();
+      }
+    };
+    document.addEventListener('keydown', _this.globalKeyHandler);
+  },
+  
+  beforeUnmount() {
+    // 清理观察器
+    if (this.dragObserver) {
+      this.dragObserver.disconnect();
+      this.dragObserver = null;
+    }
+    
+    // 清理全局事件监听器
+    if (this.globalDragEndHandler) {
+      document.removeEventListener('dragend', this.globalDragEndHandler);
+    }
+    if (this.globalKeyHandler) {
+      document.removeEventListener('keydown', this.globalKeyHandler);
+    }
+    
+    // 清理所有拖拽相关的引用
+    this.bookmarkRefs.clear();
+    
+
+  }
+};
+</script>
+<style>
+.el-tree-node.is-current > .el-tree-node__content {
+  color: #dc3545 !important;
+  font-weight: bold; /* 加粗文字 */
+}
+.el-tree-node.is-current > .el-tree-node__content > .bookmark-node > .bookmark-title {
+  color: #dc3545 !important;
+}
+
+
+.el-popper.is-dark {
+  max-width: 80%;
+}
+.bookmark_tips {
+  min-width: 200px;
+  max-width: 600px;
+  display: block;
+}
+</style>
+<style scoped>
+/* 修复树节点箭头位置 - 使用更强的选择器 */
+:deep(.el-tree .el-tree-node .el-tree-node__expand-icon) {
+  margin-right: 6px !important;
+  font-size: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: baseline !important;
+  line-height: 1.4 !important;
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  top: 0 !important;
+}
+
+/* 确保展开图标与内容对齐 - 使用更强的选择器 */
+:deep(.el-tree .el-tree-node .el-tree-node__content) {
+  align-items: center !important;
+  padding: 6px 8px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 28px !important;
+  line-height: 1.4 !important;
+  height: auto !important;
+}
+
+:deep(.el-tree .el-tree-node .el-tree-node__content .bookmark-node) {
+  align-items: center !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  display: flex !important;
+  width: 100% !important;
+}
+
+:deep(.el-tree .el-tree-node .el-tree-node__content .bookmark-node .folder-icon) {
+  align-self: center !important;
+  line-height: 1 !important;
+}
+
+:deep(.el-tree .el-tree-node .el-tree-node__content .bookmark-node .bookmark-title) {
+  align-self: center !important;
+  line-height: 1.4 !important;
+}
+
+/* 保持树形结构的层级缩进 */
+:deep(.el-tree-node) {
+  position: relative;
+}
+
+:deep(.el-tree-node__children) {
+  padding-left: 24px !important;
+  overflow: visible !important;
+}
+
+/* 多级缩进支持 */
+:deep(.el-tree-node .el-tree-node__children .el-tree-node__children) {
+  padding-left: 24px !important;
+}
+
+:deep(.el-tree-node .el-tree-node__children .el-tree-node__children .el-tree-node__children) {
+  padding-left: 24px !important;
+}
+
+/* 确保展开图标正确显示 */
+:deep(.el-tree .el-tree-node .el-tree-node__expand-icon) {
+  transition: transform 0.3s ease !important;
+}
+
+:deep(.el-tree .el-tree-node.is-expanded > .el-tree-node__content > .el-tree-node__expand-icon) {
+  transform: rotate(90deg) !important;
+}
+
+:deep(.el-tree .el-tree-node .el-tree-node__expand-icon.is-leaf) {
+  visibility: hidden !important;
+}
+
+/* 为不同层级添加视觉指示 */
+:deep(.el-tree-node__content) {
+  position: relative;
+}
+
+:deep(.el-tree-node__content::before) {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #e4e7ed;
+  opacity: 0.5;
+}
+
+:deep(.el-tree > .el-tree-node > .el-tree-node__content::before) {
+  display: none;
+}
+
+/* 修复选中状态的样式问题 */
+:deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background-color: transparent !important;
+}
+
+:deep(.el-tree-node.is-current > .el-tree-node__content .bookmark-node) {
+  background-color: #f0f9ff !important;
+  border-radius: 4px !important;
+  padding: 2px 4px !important;
+}
+
+/* 防止选中状态影响图标显示 */
+:deep(.el-tree-node.is-current > .el-tree-node__content .folder-icon) {
+  color: #409eff !important;
+}
+
+:deep(.el-tree-node.is-current > .el-tree-node__content .bookmark-title) {
+  color: #409eff !important;
+  font-weight: bold !important;
+}
+
+/* 在全局样式文件中 */
+.el-tag {
+  --el-tag-font-size: 12px;
+  --el-tag-padding: 4px 8px;
+  height: auto;
+}
+.context-menu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+  z-index: 9999;
+}
+
+.menu-item {
+  padding: 8px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #606266;
+}
+
+.menu-item:hover {
+  background: #f5f7fa;
+  color: #409eff;
+}
+
+.custom-tree-container {
+  max-width: 500px;
+  margin: 20px;
+}
+.custom-select {
+  width: 100px;
+  border-right: 1px #DCDFE6FF solid;
+}
+
+.custom-select :deep(.el-select__wrapper) {
+  box-shadow: none !important;
+  min-height: 28px !important;
+}
+
+.bookmark-node {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  width: 100%;
+  line-height: 1.4;
+  padding: 0;
+  margin: 0;
+  min-height: 28px;
+}
+
+/* 确保 bookmark-node 在 folder-drop-zone-wrapper 内正确对齐 */
+.folder-drop-zone-wrapper .bookmark-node {
+  height: 100%;
+  min-height: 28px;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.folder-icon {
+  margin-right: 6px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.bookmark-title {
+  margin-right: 6px;
+  display: inline-flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+/* Edge风格的紧凑书签行 */
+.bookmark-row-compact {
+  width: 100% !important;
+  min-height: 32px !important;
+  padding: 4px 8px 4px 8px !important;
+  align-items: center !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.bookmark-row-compact:hover {
+  background-color: #f5f7fa !important;
+  border-radius: 4px;
+}
+
+.bookmark-row-compact .el-col {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 24px !important;
+}
+
+/* 书签内容列样式 */
+.bookmark-content-col {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 状态图标列样式 */
+.bookmark-status-col {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  width: 40px !important;
+  height: 32px !important;
+  padding: 0 4px !important;
+  margin-left: 8px !important;
+}
+
+/* 状态图标样式优化 */
+.bookmark-status-col .el-icon {
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0 !important;
+}
+
+/* 紧凑的图标样式 */
+.bookmark-row-compact .el-icon {
+  margin-right: 8px !important;
+  font-size: 14px !important;
+  flex-shrink: 0;
+}
+
+/* 紧凑的文本样式 */
+.bookmark-row-compact .bookmark-text,
+.bookmark-row-compact .dir-text {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: calc(100% - 100px);
+}
+
+/* 紧凑的标签样式 */
+.bookmark-row-compact .el-tag {
+  font-size: 10px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  padding: 0 4px !important;
+  margin-left: 6px !important;
+}
+
+/* 紧凑的按钮样式 */
+.bookmark-row-compact .iconBtn {
+  --el-button-size: 16px !important;
+  padding: 1px !important;
+  margin-left: 2px !important;
+}
+
+/* Edge风格的书签内容布局 - 已合并到上面的样式中 */
+
+.bookmark-main-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.bookmark-icon {
+  font-size: 14px !important;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.bookmark-favicon {
+  height: 14px !important;
+  width: 14px !important;
+  flex-shrink: 0;
+}
+
+.compact-text {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.bookmark-meta-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: fit-content;
+  overflow: visible;
+  padding: 2px 8px 2px 4px;
+  white-space: nowrap;
+  justify-content: flex-end;
+}
+
+/* 编辑按钮容器 - 始终占据空间但默认不可见 */
+.bookmark-edit-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 悬浮时显示编辑按钮 */
+.bookmark-row-compact:hover .bookmark-edit-buttons {
+  opacity: 1;
+  visibility: visible;
+}
+
+.compact-tag {
+  font-size: 10px !important;
+  height: 16px !important;
+  line-height: 16px !important;
+  padding: 0 4px !important;
+}
+
+.compact-btn {
+  --el-button-size: 18px !important;
+  padding: 2px !important;
+  margin: 0 2px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+}
+
+/* 确保 bookmark-meta-inline 内的按钮完整显示 */
+.bookmark-meta-inline .el-button {
+  min-width: 18px !important;
+  min-height: 18px !important;
+  padding: 2px !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important;
+}
+
+/* 移除不必要的换行 */
+.bookmark-row-compact br {
+  display: none;
+}
+
+/* 优化悬停效果 */
+.bookmark-row-compact:hover .bookmark-meta-inline {
+  opacity: 1;
+}
+
+.bookmark-meta-inline {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.iconBtn {
+  --el-button-size: 20px !important;
+  padding: 3px !important;
+  margin: 0 2px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.iconBtn .el-icon {
+  font-size: 12px !important;
+  margin: 0 !important;
+}
+
+.dir-text, .bookmark-text {
+  display: inline-block;
+  color: initial; /* 初始颜色 */
+  text-decoration: none; /* 无下划线 */
+  width: 900px;
+}
+
+.bookmark-text:hover {
+  color: #409EFF; /* 悬浮时的颜色 */
+  text-decoration: underline; /* 悬浮时的下划线 */
+}
+
+/* 已合并到上面的 .bookmark-node 样式中 */
+
+.child-count-tag {
+  font-size: 10px;
+  height: 16px;
+  line-height: 16px;
+  padding: 0 4px;
+}
+
+/* 拖拽相关样式 */
+.dragging {
+  opacity: 0.5 !important;
+  transform: rotate(2deg) !important;
+  transition: all 0.2s ease;
+}
+
+.bookmark-draggable {
+  cursor: move;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.bookmark-draggable:hover {
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.bookmark-draggable * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 书签拖拽悬停效果 */
+.bookmark-drag-over {
+  position: relative;
+}
+
+.bookmark-drag-over::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #409eff;
+}
+
+.el-tree-node.is-drop-inner {
+  background-color: #f0f9ff;
+  border: 2px dashed #409eff;
+}
+
+.el-tree-node.is-drop-inner > .el-tree-node__content {
+  background-color: #f0f9ff;
+  color: #409eff;
+}
+
+/* 文件夹拖拽区域样式 */
+.folder-drop-zone-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.folder-drop-zone-wrapper:hover {
+  background-color: #f5f7fa;
+}
+
+/* 文件夹拖拽样式 */
+.folder-drop-zone-wrapper {
+  transition: all 0.2s ease;
+}
+
+.folder-drop-zone-wrapper.drag-over {
+  background-color: transparent !important;
+  /* 确保拖拽状态下容器高度不变 */
+  min-height: auto !important;
+  padding: 0 !important;
+}
+
+.folder-drop-zone-wrapper.drag-over .bookmark-node {
+  background-color: #e6f7ff !important;
+  border: 1px solid #1890ff !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 4px rgba(24, 144, 255, 0.2);
+  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  min-height: 26px !important;
+  /* 保持与默认状态相同的高度，不添加额外padding */
+}
+
+.folder-drop-zone-wrapper.drag-over .bookmark-title {
+  color: #1890ff !important;
+  font-weight: bold;
+}
+
+.folder-drop-zone-wrapper.drag-over .folder-icon {
+  color: #1890ff !important;
+}
+
+/* 精简的拖拽提示 */
+.folder-drop-zone-wrapper.drag-over .bookmark-node::after {
+  /* content: "📁"; */
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #1890ff;
+  z-index: 10;
+}
+
+/* 拖拽时禁用全局文本选择 */
+body.dragging-active {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+</style>
