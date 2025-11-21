@@ -25,16 +25,16 @@ const Util = {
             parentId: node.parentId,
             title: node.title,//添加书签时标题
             url: node.url,//添加时url
-            currentDomain:"",
+            currentDomain: "",
             currentUrl: "",//当前url
             dateGroupModified: node.dateGroupModified,
             dateAdded: node.dateAdded,
             index: node.index,//显示位置
             treeId: treeId,//目录id结构
             treeName: treeName,//目录结构
-            label:treeName+'/'+node.title,
+            label: treeName + '/' + node.title,
             domain: node.url ? new URL(node.url).hostname : null,
-            tags:[],
+            tags: [],
             domainTitle: "",
             metaTitle: "",
             metaKeywords: "", // 扩展后增加meta中对应属性
@@ -43,7 +43,7 @@ const Util = {
             syncChrome: true,
             type: node.children ? "folder" : "bookmark",
             childrenCount: node.children ? node.children.length : 0,
-            status: node.url && node.url.startsWith("http")?0:-99, //0:未处理，1:采集完成，9:已总结, -1:无法访问，-2:域名发生变化,-99:不处理,-3 重复书签
+            status: node.url && node.url.startsWith("http") ? 0 : -99, //0:未处理，1:采集完成，9:已总结, -1:无法访问，-2:域名发生变化,-99:不处理,-3 重复书签
             dateAddedTime: new Date(node.dateAdded).toLocaleString(),
             dateGroupModifiedTime: node.dateGroupModified ? new Date(node.dateGroupModified).toLocaleString() : null
         };
@@ -51,7 +51,7 @@ const Util = {
     buildTree: function (datas) {
         const map = new Map();
         datas.forEach(node => {
-            map.set(node.id, {...node, children: []});
+            map.set(node.id, { ...node, children: [] });
         });
         const tree = [];
         // let treeArr =  datas.toSorted((a, b) => a.index - b.index);
@@ -69,7 +69,8 @@ const Util = {
         return tree;
     },
     getRootTree: function (datas) {
-        return this.buildTree(datas)[0].children;
+        const tree = this.buildTree(datas);
+        return tree.length > 0 ? tree[0].children : [];
     }, getRemoveTabKey: function (tabId) {
         return "remove_" + tabId;
     },
@@ -83,10 +84,10 @@ const Util = {
             });
         });
     },
-    setLocalStorageItem: async function (key,value) {
-        await chrome.storage.local.set({[key]:value});
+    setLocalStorageItem: async function (key, value) {
+        await chrome.storage.local.set({ [key]: value });
     },
-    clearCache : async function () {
+    clearCache: async function () {
         return new Promise((resolve) => {
             chrome.storage.local.get(null, function (items) {
                 let keysToRemove = [];
@@ -108,16 +109,16 @@ const Util = {
      * @param key
      * @returns {Promise<unknown>}
      */
-    removeLocalKey: async function (key,getCallback,removeCallback) {
+    removeLocalKey: async function (key, getCallback, removeCallback) {
         return new Promise((resolve, reject) => {
             chrome.storage.local.get([key], async function (items) {
                 try {
                     if (items[key]) {
-                        if (typeof getCallback === 'function'){
+                        if (typeof getCallback === 'function') {
                             await getCallback(items);
                         }
-                        chrome.storage.local.remove(key, function() {
-                            if (typeof removeCallback === 'function'){
+                        chrome.storage.local.remove(key, function () {
+                            if (typeof removeCallback === 'function') {
                                 removeCallback(items);
                             }
                             if (chrome.runtime.lastError) {
@@ -158,7 +159,7 @@ const Util = {
             });
         });
     },
-    hasEmptyProperty(obj){
+    hasEmptyProperty(obj) {
         for (let key in obj) {
             if (obj.hasOwnProperty(key)) {
                 if (obj[key] === null || obj[key] === undefined || obj[key] === "" || obj[key].length === 0) {
