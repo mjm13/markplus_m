@@ -198,6 +198,8 @@
             </el-button>
           </template>
         </el-popconfirm>
+
+
       </template>
 
     </el-space>
@@ -223,7 +225,8 @@ import {
   Delete,
   Download,
   Upload,
-  RefreshLeft
+  RefreshLeft,
+  DataLine
 } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import chromeService from '../common/chromeService'
@@ -253,7 +256,8 @@ const emit = defineEmits([
   'removeAllCheck',
   'downLoadBookmarks',
   'handleFileUpload',
-  'reloadBookMark'
+  'reloadBookMark',
+  'switch-view'
 ])
 
 const statistics = ref({

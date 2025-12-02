@@ -1,14 +1,15 @@
 <template>
   <el-auto-resizer>
     <template #default="{ height, width }">
-      <el-scrollbar style="border-radius: 4px;box-shadow: 0 2px 12px 0 #909399">
+      <div style="height: 100%; width: 100%; border-radius: 4px; box-shadow: 0 2px 12px 0 #909399; overflow: hidden;">
         <el-tree-v2 :data="bookmarks"
                     id="bookmarkList"
                     :highlight-current="true"
                     ref="bookmarkList"
                     :show-checkbox="setting.editModel"
                     :item-size="36"
-                    :height="height || 500"
+                    :height="height"
+                    :width="width"
                     node-key="id">
           <template #default="{ node, data }">
             <div 
@@ -159,7 +160,7 @@
           </template>
 
         </el-tree-v2>
-      </el-scrollbar>
+      </div>
     </template>
   </el-auto-resizer>
 
@@ -737,7 +738,9 @@ defineExpose({
   width: 100%;
   gap: 8px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  padding-right: 50px;
 }
 
 .bookmark-icon {
@@ -763,22 +766,28 @@ defineExpose({
 }
 
 .bookmark-meta-inline {
+  position: absolute;
+  right: 50px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
   flex-shrink: 0;
   min-width: fit-content;
   overflow: visible;
-  padding: 2px 8px 2px 4px;
+  padding: 2px 4px;
   white-space: nowrap;
   justify-content: flex-end;
-  opacity: 0.7;
+  opacity: 0;
   transition: opacity 0.2s ease;
+  background: #ffffff;
+  pointer-events: none;
 }
 
 .bookmark-row-compact:hover .bookmark-meta-inline {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .bookmark-edit-buttons {
@@ -832,11 +841,12 @@ defineExpose({
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
-  flex: 0 0 auto !important;
+  flex: 0 0 40px !important;
   width: 40px !important;
+  min-width: 40px !important;
   height: 32px !important;
   padding: 0 4px !important;
-  margin-left: 8px !important;
+  margin-left: auto !important;
 }
 
 .bookmark_tips {
@@ -904,6 +914,13 @@ defineExpose({
   -ms-user-select: none;
 }
 
+/* 紧凑的图标样式 */
+.bookmark-row-compact .el-icon {
+  margin-right: 8px !important;
+  font-size: 14px !important;
+  flex-shrink: 0;
+}
+
 /* 状态图标样式优化 */
 .bookmark-status-col .el-icon {
   margin: 0 !important;
@@ -915,13 +932,6 @@ defineExpose({
   width: 20px !important;
   height: 20px !important;
   flex-shrink: 0 !important;
-}
-
-/* 紧凑的图标样式 */
-.bookmark-row-compact .el-icon {
-  margin-right: 8px !important;
-  font-size: 14px !important;
-  flex-shrink: 0;
 }
 
 .iconBtn .el-icon {
@@ -973,7 +983,7 @@ defineExpose({
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: calc(100% - 100px);
+  max-width: 800px;
 }
 
 .dir-text {

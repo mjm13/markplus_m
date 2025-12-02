@@ -2605,7 +2605,7 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: calc(100% - 100px);
+  max-width: calc(100% - 300px);
 }
 
 /* 紧凑的标签样式 */
