@@ -145,7 +145,7 @@
           </el-icon>
         </el-button>
 
-        <el-button circle size="default" :title="t('btn.userConfig')"  @click="setting.showUserConfig=true">
+        <el-button circle size="default" :title="t('btn.userConfig')"  @click="showUserConfig">
           <el-icon size="18">
             <Setting/>
           </el-icon>
@@ -169,7 +169,7 @@
           </template>
         </el-popconfirm>
 
-        <el-button circle size="default"   @click="downLoadBookmarks">
+        <el-button circle size="default" :title="t('btn.downloadBookmarks')" @click="downloadBookmarks">
           <el-icon size="18">
             <Download/>
           </el-icon>
@@ -181,7 +181,7 @@
             :show-file-list="false"
             action="#"
         >
-          <el-button circle size="default"  >
+          <el-button circle size="default" :title="t('btn.uploadBookmarks')">
             <el-icon size="18">
               <Upload/>
             </el-icon>
@@ -246,18 +246,19 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'searchStatisticsBookmarks',
-  'searchBookmarks',
-  'handleCheckAll',
-  'handleEditModelChange',
-  'crawlMeta',
-  'stopCrawlMeta',
-  'showBookmarkStatus',
-  'removeAllCheck',
-  'downLoadBookmarks',
-  'handleFileUpload',
-  'reloadBookMark',
-  'switch-view'
+  'search-statistics-bookmarks',
+  'search-bookmarks',
+  'handle-check-all',
+  'handle-edit-model-change',
+  'crawl-meta',
+  'stop-crawl-meta',
+  'show-bookmark-status',
+  'remove-all-check',
+  'download-bookmarks',
+  'reload-bookmark',
+  'switch-view',
+  'show-user-config',
+  'upload-bookmarks'
 ])
 
 const statistics = ref({
@@ -276,18 +277,19 @@ let removeListener = null
 
 const searchStatisticsBookmarks = (params) => {
   console.log('AppHeader: searchStatisticsBookmarks clicked', params)
-  emit('searchStatisticsBookmarks', params)
+  emit('search-statistics-bookmarks', params)
 }
-const searchBookmarks = () => emit('searchBookmarks')
-const handleCheckAll = (val) => emit('handleCheckAll', val)
-const handleEditModelChange = (val) => emit('handleEditModelChange', val)
-const crawlMeta = () => emit('crawlMeta')
-const stopCrawlMeta = () => emit('stopCrawlMeta')
-const showBookmarkStatus = () => emit('showBookmarkStatus')
-const removeAllCheck = () => emit('removeAllCheck')
-const downLoadBookmarks = () => emit('downLoadBookmarks')
-const handleFileUpload = (file) => emit('handleFileUpload', file)
-const reloadBookMark = () => emit('reloadBookMark')
+const searchBookmarks = () => emit('search-bookmarks')
+const handleCheckAll = (val) => emit('handle-check-all', val)
+const handleEditModelChange = (val) => emit('handle-edit-model-change', val)
+const crawlMeta = () => emit('crawl-meta')
+const stopCrawlMeta = () => emit('stop-crawl-meta')
+const showBookmarkStatus = () => emit('show-bookmark-status')
+const removeAllCheck = () => emit('remove-all-check')
+const downloadBookmarks = () => emit('download-bookmarks')
+const handleFileUpload = (file) => emit('upload-bookmarks', file)
+const reloadBookMark = () => emit('reload-bookmark')
+const showUserConfig = () => emit('show-user-config')
 
 onMounted(() => {
   removeListener = chromeService.addListener((message) => {

@@ -12,7 +12,7 @@
   },
   "btn": {
     "save": "Save",
-    "locate":"Locate",
+    "locate": "Locate",
     "syncUrl": "Sync current URL",
     "test": "Test",
     "close": "Close",
@@ -23,6 +23,8 @@
     "stopCrawlMeta": "Stop getting",
     "userConfig": "User configuration",
     "showBookmarkStatus": "Batch modify status",
+    "downloadBookmarks": "Download bookmarks",
+    "uploadBookmarks": "Upload bookmarks",
     "reloadBookMark": "Reload bookmarks"
   },
   "bookmarkDailog": {
@@ -74,13 +76,13 @@
     "promt": "Prompt for summarizing tags"
   },
   "searchQuery": {
-    "all":"All",
-    "tags":"Tags",
-    "title":"Title",
-    "metaTitle":"Source title",
-    "metaKeywords":"Source keywords",
-    "metaDescription":"Source description",
-    "url":"Website URL"
+    "all": "All",
+    "tags": "Tags",
+    "title": "Title",
+    "metaTitle": "Source title",
+    "metaKeywords": "Source keywords",
+    "metaDescription": "Source description",
+    "url": "Website URL"
   },
   "tips": {
     "modifyUserSuccess": "User configuration modified successfully!",

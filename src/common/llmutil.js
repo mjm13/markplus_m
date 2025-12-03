@@ -1,6 +1,6 @@
 import UserSetting from './userSetting.js';
 import BookmarkManager from './bookmarkManager.js';
-import {GoogleGenerativeAI,} from "@google/generative-ai";
+import { GoogleGenerativeAI, } from "@google/generative-ai";
 import LLM from "@themaximalist/llm.js";
 
 const LLM_M = {
@@ -9,9 +9,9 @@ const LLM_M = {
     timer: null,
     scanInterval: 1000,  // 批次间延迟（毫秒）
     insufficientCount: 0,
-    config:null,
+    config: null,
     model: null,
-    clear: function(){
+    clear: function () {
         if (this.timer) {
             clearInterval(this.timer);
         }
@@ -90,7 +90,7 @@ const LLM_M = {
             this.queue.push(bookmark);
         }
     },
-    summarizeTags:async function(input){
+    summarizeTags: async function (input) {
         let result;
         try {
             this.config = await UserSetting.getSysConfig();
@@ -100,13 +100,28 @@ const LLM_M = {
                 {
                     service: this.config.provider,
                     model: this.config.providerModel,
-                    apikey:this.config.providerkey,
+                    apikey: this.config.providerkey,
                     parser: LLM.parsers.json
                 });
             result = JSON.stringify(result, null, 2);
 
 
             return result
+        } catch (error) {
+            return error.toString();
+        }
+    },
+    chat: async function (input, config) {
+        try {
+            this.model = new LLM();
+            this.model.system(config.promt);
+            let result = await this.model.chat(input, {
+                service: config.provider,
+                model: config.providerModel,
+                apikey: config.providerkey,
+                parser: LLM.parsers.json
+            });
+            return JSON.stringify(result, null, 2);
         } catch (error) {
             return error.toString();
         }
@@ -129,7 +144,7 @@ const LLM_M = {
                 {
                     service: this.config.provider,
                     model: this.config.providerModel,
-                    apikey:this.config.providerkey,
+                    apikey: this.config.providerkey,
                     parser: LLM.parsers.json
                 });
 
@@ -145,7 +160,7 @@ const LLM_M = {
                     data.tags = temp['tags'];
                     if (data.status == -3) {
                         continue;
-                    }else if (data.status == 404) {
+                    } else if (data.status == 404) {
                         continue;
                     } else if (data.tags) {
                         data.status = 9;

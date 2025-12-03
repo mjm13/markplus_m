@@ -16,6 +16,7 @@
     "@themaximalist/llm.js": "^0.8.0",
     "@types/chrome": "^0.0.270",
     "chrome-types": "^0.1.301",
+    "echarts": "^6.0.0",
     "element-plus": "^2.8.1",
     "i18next-browser-languagedetector": "^8.0.2",
     "terser": "^5.33.0",

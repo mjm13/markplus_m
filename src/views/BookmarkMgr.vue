@@ -45,7 +45,6 @@
             :last-query-param="lastQueryParam"
             :statistics="statistics"
             :show-dir="showDir"
-            :bookmarks="bookmarks"
             v-model:is-dragging="isDragging"
             v-model:dragged-bookmark="draggedBookmark"
             @location-dir="locationDir"
@@ -82,7 +81,13 @@
       :user-setting="userSetting"
       :bookmark-status="bookmarkStatus"
       :providers="providers"
+      :prompt-debug-input="promptDebugInput"
+      :prompt-debug-out-put="promptDebugOutPut"
+      :prompt-debug="promptDebug"
       @save-user-setting="saveUserSetting"
+      @prompt-debug-run="promptDebugRun"
+      @update:prompt-debug-input="(val) => promptDebugInput = val"
+      @update:prompt-debug-out-put="(val) => promptDebugOutPut = val"
     />
   </div>
 </template>
@@ -124,14 +129,7 @@ export default {
     UserConfigDrawer
   },
   props: {
-    bookmarks: {
-      type: Array,
-      default: () => []
-    },
-    treeData: {
-      type: Array,
-      default: () => []
-    },
+
     statistics: {
       type: Object,
       default: () => ({})
@@ -153,7 +151,7 @@ export default {
       default: () => []
     }
   },
-  emits: ['reload', 'update:setting', 'switch-view'],
+  emits: ['reload', 'update:setting', 'switch-view', 'update-statistics-show'],
   setup() {
     const { t, locale } = useI18n({
       inheritLocale: true,
@@ -208,7 +206,58 @@ export default {
       // Drag and drop state
       isDragging: false,
       draggedBookmark: null,
+      
+      treeData: [{
+        id: 0,
+        tiltle: "书签"
+      }],
+      bookmarks: [],
+      
+      // Prompt debug state
+      promptDebugInput: `[{
+    "id": "1531",
+    "title": "猿圈",
+    "url": "http://www.oxcoder.com/",
+    "currentUrl": "https://www.oxcoder.com/",
+    "metaTitle": "猿圈-在线考试-在线面试-校招笔试系统-在线考试系统-线上视频面试-题库-命题服务-线上笔试-在线面试-show me bug-考试星-代码面试-在线笔试平台-技术能力评估",
+    "metaKeywords": "在线考试,在线面试,校招笔试系统,showmebug, show me bug, 在线笔试, 技术面试, 面试题库, 在线面试复盘, 代码面试, 编程面试, 程序员招聘, 技术招聘, 代码测评, 模拟面试, 技术评估神器, 在线架构绘图, 在线白板面试, 技术能力评估, 技术招聘工具, 测评供应商, 视频面试供应商, 视频面试平台, 在线笔试平台, coding interview, 在线面试工具, 实习生招聘, 校招面试题, 校招笔试题, 网上考试系统,在线考试系统,在线考试题库,在线面试,线上视频面试,远程面试,校招题库,校招笔试出题,校招命题服务,在线题库,牛客,鹰眼,赛码,考试星,在线答题系统,在线培训系统,在线学习平台,企业内训, 线上笔试, 华信高科, 问卷星, 融智云考, 小艺帮, 考试云, eduline",
+    "metaDescription": "国内领先的AI在线考试和AI在线面试一体化解决方案供应商。适用于企业、院校、事业单位进行校园招聘、社会招聘和在线培训等。支持程序员技术能力评估，帮助管理者识别团队技术强项弱点，帮助你的团队从技术上快速适应业务部门提出的技术要求。",
+    "metaTags": ""
+}]`,
+      promptDebugOutPut: '',
+      promptDebug: false
     };
+  },
+  mounted() {
+    const _this = this;
+    // Initial query for tree data
+    chromeService.postMessage({
+      action: Constant.PAGE_EVENT.QUERY_FOLDER
+    });
+    
+    chromeService.addListener(async function (result) {
+      if (result.action === Constant.PAGE_EVENT.QUERY_FOLDER) {
+        _this.treeData = result.datas;
+      } else if (result.action === Constant.PAGE_EVENT.STOP_CRAWL_META_ACK) {
+        _this.setting.crawlStatus = "0";
+        _this.reloadBookmarkPage();
+      } else if (result.action === Constant.PAGE_EVENT.QUERY_BOOKMARKS) {
+        _this.bookmarks = result.datas;
+        _this.$emit('update-statistics-show', result.datas.length);
+      } else if (result.action === Constant.PAGE_EVENT.DOWNLOAD_BOOKMARKS) {
+        for (let i = result.datas.length - 1; i >= 0; i--) {
+          delete result.datas[i].id;
+        }
+        let newJsonString = JSON.stringify(result.datas, null, 2);
+        var blob = new Blob([newJsonString], {type: 'application/json'});
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'data.json';
+        a.click();
+      } else if (result.action === Constant.PAGE_EVENT.SAVE_TO_D1) {
+        LLM_M.summarizeTags(JSON.stringify(result.datas[0]));
+      }
+    });
   },
   methods: {
     locationDir(data){
@@ -617,6 +666,18 @@ export default {
     },
     openUrl(data) {
       window.open(data.url, '_blank');
+    },
+    promptDebugRun() {
+      const _this = this;
+      _this.promptDebug = true;
+      _this.promptDebugOutPut = '';
+      LLM_M.chat(_this.promptDebugInput, _this.userSetting).then(res => {
+        _this.promptDebugOutPut = res;
+        _this.promptDebug = false;
+      }).catch(err => {
+        _this.promptDebugOutPut = err;
+        _this.promptDebug = false;
+      })
     }
   }
 }

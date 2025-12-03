@@ -4,8 +4,6 @@
       <component
         :is="currentView"
         :key="currentView"
-        :bookmarks="bookmarks"
-        :tree-data="treeData"
         :statistics="statistics"
         :setting="setting"
         :user-setting="userSetting"
@@ -13,6 +11,7 @@
         :bookmark-status="bookmarkStatus"
         @reload="reloadBookmarkPage"
         @update:setting="(val) => Object.assign(setting, val)"
+        @update-statistics-show="(val) => statistics.show = val"
         @switch-view="toggleView"
       />
     </keep-alive>
@@ -114,10 +113,11 @@ export default {
         {key: _this.t('bookmark.status_show.9'), value: 9},
         {key: _this.t('bookmark.status_show.404'), value: 404},
       ],
-      treeData: [{
-        id: 0,
-        tiltle: "书签"
-      }],
+
+      
+      // Last query param needed for reloading
+      
+      // Last query param needed for reloading
       statistics: {
         selectStatus: [],
         "404": 0,
@@ -128,9 +128,6 @@ export default {
         change: 0,
         show: 0
       },
-      bookmarks: [],
-      
-      // Last query param needed for reloading
       lastQueryParam: {
         prop: 'parentId',
         operator: 'eq',
@@ -148,32 +145,12 @@ export default {
       let _this = this;
       // Use chromeService instead of direct connection
       chromeService.addListener(async function (result) {
-        if (result.action === Constant.PAGE_EVENT.QUERY_FOLDER) {
-          _this.treeData = result.datas;
-        } else if (result.action === Constant.PAGE_EVENT.STOP_CRAWL_META_ACK) {
-          _this.setting.crawlStatus = "0";
-          _this.reloadBookmarkPage();
-        } else if (result.action === Constant.PAGE_EVENT.QUERY_BOOKMARKS) {
-          _this.bookmarks = result.datas;
-          _this.statistics.show = result.datas.length;
-        } else if (result.action === Constant.PAGE_EVENT.ALERT_MSG) {
+        if (result.action === Constant.PAGE_EVENT.ALERT_MSG) {
           ElMessage({
             message: result.msg,
             type: 'error',
           });
-        } else if (result.action === Constant.PAGE_EVENT.DOWNLOAD_BOOKMARKS) {
-          for (let i = result.datas.length - 1; i >= 0; i--) {
-            delete result.datas[i].id;
-          }
-          let newJsonString = JSON.stringify(result.datas, null, 2);
-          var blob = new Blob([newJsonString], {type: 'application/json'});
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = 'data.json';
-          a.click();
-        } else if (result.action === Constant.PAGE_EVENT.SAVE_TO_D1) {
-          LLM_M.summarizeTags(JSON.stringify(result.datas[0]));
-        }  else if (result.action === Constant.PAGE_EVENT.RELOAD_PAGE) {
+        } else if (result.action === Constant.PAGE_EVENT.RELOAD_PAGE) {
           _this.reloadBookmarkPage();
         } else if (result.action === Constant.PAGE_EVENT.STATISTICS_TOTAL) {
           const { datas } = result;
@@ -224,7 +201,6 @@ export default {
           }
           
           _this.statistics = { ..._this.statistics, ...stat }
-          _this.treeData = Util.getRootTree(treeData);
         }
       });
     },

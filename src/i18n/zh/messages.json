@@ -12,7 +12,7 @@
   },
   "btn": {
     "save": "保存",
-    "locate":"定位",
+    "locate": "定位",
     "syncUrl": "同步当前网址",
     "test": "测试",
     "close": "关闭",
@@ -23,6 +23,8 @@
     "stopCrawlMeta": "停止获取",
     "userConfig": "用户配置",
     "showBookmarkStatus": "批量修改状态",
+    "downloadBookmarks": "下载书签数据",
+    "uploadBookmarks": "上传书签数据",
     "reloadBookMark": "重新加载书签"
   },
   "bookmarkDailog": {
@@ -74,13 +76,13 @@
     "promt": "总结标签提示词"
   },
   "searchQuery": {
-    "all":"全部",
-    "tags":"标签",
-    "title":"标题",
-    "metaTitle":"源标题",
-    "metaKeywords":"源关键词",
-    "metaDescription":"源描述",
-    "url":"网址"
+    "all": "全部",
+    "tags": "标签",
+    "title": "标题",
+    "metaTitle": "源标题",
+    "metaKeywords": "源关键词",
+    "metaDescription": "源描述",
+    "url": "网址"
   },
   "tips": {
     "modifyUserSuccess": "修改用户配置成功!",
